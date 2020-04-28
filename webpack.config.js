@@ -9,7 +9,7 @@ module.exports = {
   },
   devtool: "inline-source-map",
   devServer: {
-    contentBase: "./dist",
+    contentBase: ["./dist", "./src/assets"],
     historyApiFallback: true,
   },
   module: {
