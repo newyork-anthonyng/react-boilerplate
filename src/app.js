@@ -1,4 +1,9 @@
 import React from "react";
 import { render } from "react-dom";
+import "./styles.css";
 
-render(<h1>Hello World</h1>, document.querySelector(".js-root"));
+function App() {
+  return <h1>Hello World</h1>;
+}
+
+render(<App />, document.querySelector(".js-root"));
