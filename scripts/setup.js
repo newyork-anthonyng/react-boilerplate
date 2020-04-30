@@ -4,7 +4,7 @@ const { exec } = require("child_process");
 cleanRepo();
 
 function cleanRepo() {
-  fs.readFile("./git/config", "utf8", (_, data) => {
+  fs.readFile(".git/config", "utf8", (_, data) => {
     if (isBoilerplateRepo(data)) {
       console.log("Creating new repository...");
       exec("rm -rf .git/");
