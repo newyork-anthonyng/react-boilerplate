@@ -15,7 +15,7 @@
       "npm run lint"
     ]
   },
-  "pre-commit": "lint-staged",
+  "pre-commit": "lint:staged",
   "keywords": [
     "react",
     "boilerplate"
@@ -35,6 +35,7 @@
     "html-webpack-plugin": "^4.2.1",
     "lint-staged": "^10.2.2",
     "postcss-loader": "^3.0.0",
+    "pre-commit": "^1.2.2",
     "prettier": "^2.0.5",
     "style-loader": "^1.2.1",
     "webpack": "^4.43.0",
