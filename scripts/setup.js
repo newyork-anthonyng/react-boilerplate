@@ -6,10 +6,10 @@ cleanRepo();
 function cleanRepo() {
   fs.readFile(".git/config", "utf8", (_, data) => {
     if (isBoilerplateRepo(data)) {
-      console.log("Creating new repository...");
+      console.log("Removing existing repository...");
       exec("rm -rf .git/");
 
-      console.log("Creating new repository");
+      console.log("Creating new repository...");
       exec('git init && git add . && git commit -m "Initial commit"');
 
       console.log("Installing dependencies...");
