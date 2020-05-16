@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
@@ -46,6 +47,9 @@ module.exports = {
       title: "Development",
       template: "./src/index.html",
     }),
+    new webpack.DefinePlugin({
+      "process.env.MIRAGE": JSON.stringify(process.env.MIRAGE)
+    })
   ],
   output: {
     filename: "[name].bundle.js",
