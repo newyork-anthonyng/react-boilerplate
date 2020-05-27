@@ -8,6 +8,9 @@ npm run setup
 
 # Start development server
 npm run dev
+
+# Start mongodb
+mongod --dbpath=/Users/<YOUR_USER_NAME>/data/db
 ```
 
 # Deploying
