@@ -1,9 +1,14 @@
+const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const mongoose = require("mongoose");
 
-mongoose.promise = global.Promise;
+const webpack = require("webpack");
+const webpackDevMiddleware = require("webpack-dev-middleware");
+const webpackHotMiddleware = require("webpack-hot-middleware");
+const config = require("./webpack.config.js");
+
 const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
@@ -42,6 +47,22 @@ if (!isProduction) {
     });
   });
 }
+
+if (!isProduction) {
+  config.entry.app.unshift(
+    "webpack-hot-middleware/client?reload=true&timeout=1000"
+  );
+  config.plugins.push(new webpack.HotModuleReplacementPlugin());
+  const compiler = webpack(config);
+  app.use(
+    webpackDevMiddleware(compiler, {
+      publicPath: config.output.publicPath,
+    })
+  );
+  app.use(webpackHotMiddleware(compiler));
+}
+
+app.use(express.static(path.resolve(__dirname, "dist")));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _) => {
