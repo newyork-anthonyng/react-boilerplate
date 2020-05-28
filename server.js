@@ -1,9 +1,7 @@
-const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const mongoose = require("mongoose");
-const errorHandler = require("errorhandler");
 
 mongoose.promise = global.Promise;
 const isProduction = process.env.NODE_ENV === "production";
@@ -21,10 +19,6 @@ app.use(
   })
 );
 
-if (!isProduction) {
-  app.use(errorHandler);
-}
-
 mongoose.connect("mongodb://localhost/passport-tutorial", {
   useNewUrlParser: true,
 });
@@ -36,7 +30,8 @@ require("./config/passport");
 app.use(require("./routes"));
 
 if (!isProduction) {
-  app.use((err, req, res) => {
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, req, res, _) => {
     res.status(err.status || 500);
 
     res.json({
@@ -48,7 +43,8 @@ if (!isProduction) {
   });
 }
 
-app.use((err, req, res) => {
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _) => {
   res.status(err.status || 500);
 
   res.json({

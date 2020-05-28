@@ -4,7 +4,7 @@ const router = require("express").Router();
 const auth = require("../auth");
 const Users = mongoose.model("Users");
 
-router.post("/", auth.optional, (req, res, next) => {
+router.post("/", auth.optional, (req, res) => {
   const {
     body: { user },
   } = req;
@@ -69,12 +69,12 @@ router.post("/login", auth.optional, (req, res, next) => {
         return res.json({ user: user.toAuthJSON() });
       }
 
-      return res.status(400).info;
+      return res.status(400).json(info);
     }
   )(req, res, next);
 });
 
-router.get("/current", auth.required, (req, res, next) => {
+router.get("/current", auth.required, (req, res) => {
   const {
     payload: { id },
   } = req;
