@@ -82,8 +82,8 @@ function Signup() {
             ))}
           </ul>
         )}
-        {state.matches("ready.auth.error.unauthorized") && (
-          <p>Sign up failed. Try again.</p>
+        {state.matches("ready.auth.error.emailTaken") && (
+          <p>Email already taken.</p>
         )}
       </div>
     </div>
