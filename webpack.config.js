@@ -18,10 +18,6 @@ module.exports = {
     historyApiFallback: true,
     contentBase: "./dist",
     writeToDisk: true,
-    // contentBase: ["./", "./src/assets"],
-    // historyApiFallback: {
-    //   index: "/index.html",
-    // },
   },
   module: {
     rules: [

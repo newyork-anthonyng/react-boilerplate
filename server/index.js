@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 const webpack = require("webpack");
 const webpackDevMiddleware = require("webpack-dev-middleware");
 const webpackHotMiddleware = require("webpack-hot-middleware");
-const config = require("./webpack.config.js");
+const config = require("../webpack.config.js");
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -64,8 +64,6 @@ if (!isProduction) {
   app.use(webpackHotMiddleware(compiler));
 }
 
-// app.use(express.static(path.resolve(__dirname, "dist")));
-
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _) => {
   res.status(err.status || 500);
@@ -81,7 +79,7 @@ app.use((err, req, res, _) => {
 app.get("*", (req, res) => {
   console.log(fs.readdirSync(path.resolve(__dirname)));
 
-  const filePath = path.resolve(__dirname, "./dist/index.html");
+  const filePath = path.resolve(__dirname, "../dist/index.html");
   res.sendFile(filePath);
 });
 
