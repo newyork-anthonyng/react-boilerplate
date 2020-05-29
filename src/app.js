@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { render } from "react-dom";
 import "./styles.css";
 import Login from "./pages/Login/index";
+import Signup from "./pages/Signup/index";
 import {
   BrowserRouter as Router,
   Switch,
@@ -73,6 +74,9 @@ function App() {
             <Link to="/login">Login</Link>
           </li>
           <li>
+            <Link to="/signup">Signup</Link>
+          </li>
+          <li>
             <Link to="/protected">Protected route</Link>
           </li>
         </ul>
@@ -80,6 +84,10 @@ function App() {
       <Switch>
         <Route path="/login">
           <Login />
+        </Route>
+
+        <Route path="/signup">
+          <Signup />
         </Route>
 
         <PrivateRoute path="/protected">

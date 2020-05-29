@@ -3,8 +3,9 @@ const passport = require("passport");
 const router = require("express").Router();
 const auth = require("../auth");
 const Users = mongoose.model("Users");
+const passwordChecker = require("owasp-password-strength-test");
 
-router.post("/", auth.optional, (req, res) => {
+router.post("/", auth.optional, async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -17,10 +18,45 @@ router.post("/", auth.optional, (req, res) => {
     });
   }
 
+  if (!user.firstName) {
+    return res.status(422).json({
+      errors: {
+        firstName: "is required",
+      },
+    });
+  }
+
+  if (!user.lastName) {
+    return res.status(422).json({
+      errors: {
+        lastName: "is required",
+      },
+    });
+  }
+
   if (!user.password) {
     return res.status(422).json({
       errors: {
-        password: "is required",
+        password: ["is required"],
+      },
+    });
+  }
+
+  const passwordTestResult = passwordChecker.test(user.password);
+  const isPasswordWeak = passwordTestResult.errors.length > 0;
+  if (isPasswordWeak) {
+    return res.status(422).json({
+      errors: {
+        password: passwordTestResult.errors,
+      },
+    });
+  }
+
+  const existingUser = await Users.findOne({ email: user.email });
+  if (existingUser) {
+    return res.status(422).json({
+      errors: {
+        email: "is taken",
       },
     });
   }
@@ -74,18 +110,17 @@ router.post("/login", auth.optional, (req, res, next) => {
   )(req, res, next);
 });
 
-router.get("/current", auth.required, (req, res) => {
+router.get("/current", auth.required, async (req, res) => {
   const {
     payload: { id },
   } = req;
 
-  return Users.findById(id).then((user) => {
-    if (!user) {
-      return res.sendStatus(400);
-    }
+  const user = await Users.findById(id);
+  if (!user) {
+    return res.sendStatus(400);
+  }
 
-    return res.json({ user: user.toAuthJSON() });
-  });
+  return res.json({ user: user.toAuthJSON() });
 });
 
 module.exports = router;
