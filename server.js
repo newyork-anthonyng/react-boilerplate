@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -57,12 +58,13 @@ if (!isProduction) {
   app.use(
     webpackDevMiddleware(compiler, {
       publicPath: config.output.publicPath,
+      writeToDisk: true,
     })
   );
   app.use(webpackHotMiddleware(compiler));
 }
 
-app.use(express.static(path.resolve(__dirname, "dist")));
+// app.use(express.static(path.resolve(__dirname, "dist")));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _) => {
@@ -74,6 +76,13 @@ app.use((err, req, res, _) => {
       error: {},
     },
   });
+});
+
+app.get("*", (req, res) => {
+  console.log(fs.readdirSync(path.resolve(__dirname)));
+
+  const filePath = path.resolve(__dirname, "./dist/index.html");
+  res.sendFile(filePath);
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {

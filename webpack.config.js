@@ -8,12 +8,20 @@ module.exports = {
   entry: {
     app: ["./src/app.js"],
   },
+  output: {
+    filename: "[name].bundle.js",
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/",
+  },
   devtool: "inline-source-map",
   devServer: {
-    contentBase: ["./dist", "./src/assets"],
-    historyApiFallback: {
-      index: "/index.html",
-    },
+    historyApiFallback: true,
+    contentBase: "./dist",
+    writeToDisk: true,
+    // contentBase: ["./", "./src/assets"],
+    // historyApiFallback: {
+    //   index: "/index.html",
+    // },
   },
   module: {
     rules: [
@@ -53,9 +61,4 @@ module.exports = {
       "process.env.MIRAGE": JSON.stringify(process.env.MIRAGE),
     }),
   ],
-  output: {
-    filename: "[name].bundle.js",
-    path: path.resolve(__dirname, "dist"),
-    publicPath: "/",
-  },
 };
