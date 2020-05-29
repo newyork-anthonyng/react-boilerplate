@@ -26,10 +26,16 @@ UsersSchema.methods.validatePassword = function (password) {
   return this.hash === hash;
 };
 
-UsersSchema.methods.generateJWT = function () {
+function getExpirationDate() {
   const today = new Date();
-  const expirationDate = new Date(today);
-  expirationDate.setDate(today.getDate() + 60);
+  const thirtyMinutesInMs = 30 * 60000;
+  const expirationDate = new Date(today.getTime() + thirtyMinutesInMs);
+
+  return expirationDate;
+}
+
+UsersSchema.methods.generateJWT = function () {
+  const expirationDate = getExpirationDate();
 
   return jwt.sign(
     {
