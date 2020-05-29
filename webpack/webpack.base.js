@@ -1,20 +1,17 @@
 const webpack = require("webpack");
 const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
-module.exports = {
-  mode: "development",
-  entry: {
-    app: ["./src/app.js"],
-  },
-  devtool: "inline-source-map",
-  devServer: {
-    contentBase: ["./dist", "./src/assets"],
-    historyApiFallback: {
-      index: "/index.html",
+module.exports = (options) => ({
+  mode: options.mode,
+  entry: options.entry,
+  output: Object.assign(
+    {
+      path: path.resolve(process.cwd(), "build"),
+      publicPath: "/",
     },
-  },
+    options.output
+  ),
+  devtool: options.devtool,
   module: {
     rules: [
       {
@@ -43,19 +40,11 @@ module.exports = {
       },
     ],
   },
-  plugins: [
-    new CleanWebpackPlugin(),
-    new HtmlWebpackPlugin({
-      title: "Development",
-      template: "./src/index.html",
-    }),
+  plugins: options.plugins.concat([
     new webpack.DefinePlugin({
-      "process.env.MIRAGE": JSON.stringify(process.env.MIRAGE),
+      "process.env": {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+      },
     }),
-  ],
-  output: {
-    filename: "[name].bundle.js",
-    path: path.resolve(__dirname, "dist"),
-    publicPath: "/",
-  },
-};
+  ]),
+});

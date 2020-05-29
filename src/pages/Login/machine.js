@@ -57,11 +57,19 @@ const machine = Machine(
         on: {
           INPUT_EMAIL: {
             actions: ["cacheEmail"],
-            target: ["ready.email.noError", "ready.password.noError"],
+            target: [
+              "ready.email.noError",
+              "ready.password.noError",
+              "ready.auth.noError",
+            ],
           },
           INPUT_PASSWORD: {
             actions: ["cachePassword"],
-            target: ["ready.email.noError", "ready.password.noError"],
+            target: [
+              "ready.email.noError",
+              "ready.password.noError",
+              "ready.auth.noError",
+            ],
           },
           SUBMIT: [
             {
