@@ -1,5 +1,5 @@
 import { Machine, assign } from "xstate";
-import login from "./api";
+import auth from "./api";
 
 const machine = Machine(
   {
@@ -39,19 +39,62 @@ const machine = Machine(
               },
             },
           },
+
+          auth: {
+            initial: "noError",
+            states: {
+              noError: {},
+              error: {
+                initial: "unauthorized",
+                states: {
+                  unauthorized: {},
+                },
+              },
+            },
+          },
         },
 
         on: {
-          INPUT_EMAIL: { actions: ["cacheEmail"] },
-          INPUT_PASSWORD: { actions: ["cachePassword"] },
-          SUBMIT: { actions: ["submit"] },
+          INPUT_EMAIL: {
+            actions: ["cacheEmail"],
+            target: ["ready.email.noError", "ready.password.noError"],
+          },
+          INPUT_PASSWORD: {
+            actions: ["cachePassword"],
+            target: ["ready.email.noError", "ready.password.noError"],
+          },
+          SUBMIT: [
+            {
+              target: "ready.email.error.empty",
+              cond: "emptyEmail",
+            },
+            {
+              target: "ready.password.error.empty",
+              cond: "emptyPassword",
+            },
+            {
+              target: "submitting",
+            },
+          ],
         },
       },
-      submitting: {},
-      success: {},
+      submitting: {
+        invoke: {
+          src: "login",
+          onDone: "success",
+          onError: "ready.auth.error.unauthorized",
+        },
+      },
+      success: {
+        type: "final",
+      },
     },
   },
   {
+    guards: {
+      emptyEmail: (context) => context.email.trim().length === 0,
+      emptyPassword: (context) => context.password.trim().length === 0,
+    },
     actions: {
       cacheEmail: assign({
         email: (context, event) => event.value,
@@ -60,11 +103,10 @@ const machine = Machine(
       cachePassword: assign({
         password: (context, event) => event.value,
       }),
-
-      submit: (context) => {
-        console.group("submit");
-        console.log(context.email, context.password);
-        console.groupEnd("submit");
+    },
+    services: {
+      login: (context) => {
+        return auth.login({ email: context.email, password: context.password });
       },
     },
   }

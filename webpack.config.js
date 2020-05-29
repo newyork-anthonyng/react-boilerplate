@@ -11,7 +11,9 @@ module.exports = {
   devtool: "inline-source-map",
   devServer: {
     contentBase: ["./dist", "./src/assets"],
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: "/index.html",
+    },
   },
   module: {
     rules: [
