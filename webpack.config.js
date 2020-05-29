@@ -6,7 +6,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 module.exports = {
   mode: "development",
   entry: {
-    app: ["./src/app.js"],
+    app: ["webpack-hot-middleware/client?reload=true", "./src/app.js"],
   },
   output: {
     filename: "[name].bundle.js",
@@ -14,11 +14,6 @@ module.exports = {
     publicPath: "/",
   },
   devtool: "inline-source-map",
-  devServer: {
-    historyApiFallback: true,
-    contentBase: "./dist",
-    writeToDisk: true,
-  },
   module: {
     rules: [
       {
@@ -48,6 +43,7 @@ module.exports = {
     ],
   },
   plugins: [
+    new webpack.HotModuleReplacementPlugin(),
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
       title: "Development",
