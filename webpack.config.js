@@ -6,12 +6,14 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 module.exports = {
   mode: "development",
   entry: {
-    app: "./src/app.js",
+    app: ["./src/app.js"],
   },
   devtool: "inline-source-map",
   devServer: {
     contentBase: ["./dist", "./src/assets"],
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: "/index.html",
+    },
   },
   module: {
     rules: [
@@ -48,8 +50,8 @@ module.exports = {
       template: "./src/index.html",
     }),
     new webpack.DefinePlugin({
-      "process.env.MIRAGE": JSON.stringify(process.env.MIRAGE)
-    })
+      "process.env.MIRAGE": JSON.stringify(process.env.MIRAGE),
+    }),
   ],
   output: {
     filename: "[name].bundle.js",
