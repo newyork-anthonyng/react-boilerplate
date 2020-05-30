@@ -6,6 +6,9 @@ git clone --depth 1 https://github.com/newyork-anthonyng/react-boilerplate.git <
 # Download dependencies
 npm run setup
 
+# Set up environment variables
+cp example.env .env
+
 # Start mongodb
 mongod --dbpath=/Users/<YOUR_USER_NAME>/data/db
 
