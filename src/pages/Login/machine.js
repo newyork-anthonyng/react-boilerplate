@@ -1,5 +1,6 @@
 import { Machine, assign } from "xstate";
 import auth from "./api";
+import { resendVerification } from "../Signup/api";
 
 const machine = Machine(
   {
@@ -90,11 +91,45 @@ const machine = Machine(
         invoke: {
           src: "login",
           onDone: "success",
-          onError: "ready.auth.error.unauthorized",
+          onError: [
+            { cond: "isNotVerified", target: "notVerified" },
+            { target: "ready.auth.error.unauthorized" },
+          ],
+        },
+      },
+      notVerified: {
+        on: {
+          RESEND_VERIFICATION: "resendingVerification",
+        },
+      },
+      resendingVerification: {
+        invoke: {
+          src: "resendVerification",
+          onDone: "resendVerificationSuccess",
+          onError: [{ target: "resendVerificationError.generic" }],
         },
       },
       success: {
         type: "final",
+      },
+      resendVerificationSuccess: {
+        on: {
+          RESEND_VERIFICATION: {
+            target: "resendingVerification",
+          },
+        },
+      },
+      resendVerificationError: {
+        initial: "generic",
+        states: {
+          generic: {
+            on: {
+              RESEND_VERIFICATION: {
+                target: "#login.resendingVerification",
+              },
+            },
+          },
+        },
       },
     },
   },
@@ -102,6 +137,11 @@ const machine = Machine(
     guards: {
       emptyEmail: (context) => context.email.trim().length === 0,
       emptyPassword: (context) => context.password.trim().length === 0,
+      isNotVerified: (_, event) => {
+        const { data } = event;
+
+        return data.errors.verified === "user not verified";
+      },
     },
     actions: {
       cacheEmail: assign({
@@ -115,6 +155,9 @@ const machine = Machine(
     services: {
       login: (context) => {
         return auth.login({ email: context.email, password: context.password });
+      },
+      resendVerification: (context) => {
+        return resendVerification({ email: context.email });
       },
     },
   }

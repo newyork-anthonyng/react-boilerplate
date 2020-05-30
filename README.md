@@ -6,11 +6,11 @@ git clone --depth 1 https://github.com/newyork-anthonyng/react-boilerplate.git <
 # Download dependencies
 npm run setup
 
-# Start development server
-npm run dev
-
 # Start mongodb
 mongod --dbpath=/Users/<YOUR_USER_NAME>/data/db
+
+# Start development server
+npm run start
 ```
 
 # Deploying

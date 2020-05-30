@@ -1,5 +1,5 @@
 import { Machine, assign } from "xstate";
-import signup from "./api";
+import { signup, resendVerification } from "./api";
 import passwordChecker from "owasp-password-strength-test";
 
 const machine = Machine(
@@ -113,7 +113,51 @@ const machine = Machine(
         },
       },
       success: {
-        type: "final",
+        on: {
+          RESEND_VERIFICATION: {
+            target: "resendingVerification",
+          },
+        },
+      },
+      resendingVerification: {
+        invoke: {
+          src: "resendVerification",
+          onDone: "resendVerificationSuccess",
+          onError: [
+            {
+              cond: "wasAlreadyVerified",
+              target: "resendVerificationError.alreadyVerified",
+            },
+            {
+              cond: "wasUserNotFound",
+              target: "resendVerificationError.userNotFound",
+            },
+            { target: "resendVerificationError.generic" },
+          ],
+        },
+      },
+      resendVerificationSuccess: {
+        on: {
+          RESEND_VERIFICATION: {
+            target: "resendingVerification",
+          },
+        },
+      },
+      resendVerificationError: {
+        initial: "generic",
+        states: {
+          generic: {
+            on: {
+              RESEND_VERIFICATION: {
+                target: "#signup.resendingVerification",
+              },
+            },
+          },
+          alreadyVerified: { type: "final" },
+          userNotFound: {
+            type: "final",
+          },
+        },
       },
     },
   },
@@ -159,6 +203,9 @@ const machine = Machine(
           email: context.email,
           password: context.password,
         });
+      },
+      resendVerification: (context) => {
+        return resendVerification({ email: context.email });
       },
     },
   }
