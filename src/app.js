@@ -3,6 +3,7 @@ import { render } from "react-dom";
 import "./styles.css";
 import Login from "./pages/Login/index";
 import Signup from "./pages/Signup/index";
+import EmailVerification from "./pages/EmailVerification/index";
 import {
   BrowserRouter as Router,
   Switch,
@@ -88,6 +89,10 @@ function App() {
 
         <Route path="/signup">
           <Signup />
+        </Route>
+
+        <Route path="/confirmation/:token">
+          <EmailVerification />
         </Route>
 
         <PrivateRoute path="/protected">

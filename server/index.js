@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -14,7 +15,7 @@ mongoose.connect("mongodb://localhost/passport-tutorial", {
 mongoose.set("debug", true);
 mongoose.set("useUnifiedTopology", true);
 
-require("./models/Users");
+require("./models/index");
 require("./config/passport");
 app.use("/api", require("./routes"));
 

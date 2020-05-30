@@ -112,7 +112,9 @@ const machine = Machine(
           onError: "ready.auth.error.emailTaken",
         },
       },
-      success: {},
+      success: {
+        type: "final",
+      },
     },
   },
   {

@@ -1,13 +1,15 @@
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const sendEmail = require("../mailer");
 
 const { Schema } = mongoose;
 
 const UsersSchema = new Schema({
   firstName: String,
   lastName: String,
-  email: String,
+  email: { type: String, unique: true },
+  isVerified: { type: Boolean, default: false },
   hash: String,
   salt: String,
 });
@@ -53,6 +55,14 @@ UsersSchema.methods.toAuthJSON = function () {
     email: this.email,
     token: this.generateJWT(),
   };
+};
+
+UsersSchema.methods.sendEmail = function (token) {
+  sendEmail({
+    firstName: this.firstName,
+    email: this.email,
+    token,
+  });
 };
 
 mongoose.model("Users", UsersSchema);

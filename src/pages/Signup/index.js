@@ -32,6 +32,15 @@ function Signup() {
   const handlePasswordChange = (e) => {
     send({ type: "INPUT_PASSWORD", value: e.target.value });
   };
+  if (state.matches("success")) {
+    return (
+      <div>
+        <p>
+          Email verification has been sent. Look at your email to verify it.
+        </p>
+      </div>
+    );
+  }
   return (
     <div>
       <form onSubmit={handleSubmit}>
