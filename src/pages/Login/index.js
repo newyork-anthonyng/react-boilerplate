@@ -15,6 +15,53 @@ function LoginPage() {
     e.preventDefault();
     send({ type: "SUBMIT" });
   };
+  const handleResendClick = () => {
+    send({ type: "RESEND_VERIFICATION" });
+  };
+
+  if (state.matches("notVerified")) {
+    return (
+      <div>
+        <p>
+          Email was not verified.{" "}
+          <button onClick={handleResendClick}>Resend verification link.</button>
+        </p>
+      </div>
+    );
+  }
+
+  if (state.matches("resendingVerification")) {
+    return <p>Resending verification email</p>;
+  }
+
+  if (state.matches("resendVerificationSuccess")) {
+    return (
+      <div>
+        <h1>Thank you!</h1>
+        <p>We&apos;ve resent an email to {email}.</p>
+        <p>Please click the link in that message to activate your account.</p>
+        <p>
+          Didn&apos;t receive the link?{" "}
+          <button onClick={handleResendClick}>
+            Click here to send another one.
+          </button>
+        </p>
+      </div>
+    );
+  }
+
+  if (state.matches("resendVerificationError")) {
+    return (
+      <div>
+        <p>
+          Something went wrong.{" "}
+          <button onClick={handleResendClick}>
+            Try resending verification email again.
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   if (state.matches("success")) {
     return <Redirect to="/protected" />;

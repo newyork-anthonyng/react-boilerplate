@@ -45,7 +45,7 @@ UsersSchema.methods.generateJWT = function () {
       email: this.email,
       exp: parseInt(expirationDate.getTime() / 1000, 10),
     },
-    "secret"
+    process.env.jwt_secret
   );
 };
 
