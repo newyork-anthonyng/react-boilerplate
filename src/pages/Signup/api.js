@@ -32,4 +32,28 @@ function signup({ firstName, lastName, email, password }) {
   });
 }
 
-export default signup;
+const RESEND_VERIFICATION_URL = "/api/users/resend-token";
+function resendVerification({ email }) {
+  return new Promise((resolve, reject) => {
+    fetch(RESEND_VERIFICATION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+      }),
+    })
+      .then((response) => {
+        return response.json();
+      })
+      .then((response) => {
+        resolve(response);
+      })
+      .catch((response) => {
+        reject(response);
+      });
+  });
+}
+
+export { signup, resendVerification };

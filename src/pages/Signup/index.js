@@ -1,6 +1,7 @@
 import React from "react";
 import machine from "./machine";
 import { useMachine } from "@xstate/react";
+import { Link } from "react-router-dom";
 
 function Signup() {
   const [state, send] = useMachine(machine);
@@ -32,15 +33,58 @@ function Signup() {
   const handlePasswordChange = (e) => {
     send({ type: "INPUT_PASSWORD", value: e.target.value });
   };
-  if (state.matches("success")) {
+
+  const handleResendClick = () => {
+    send({ type: "RESEND_VERIFICATION" });
+  };
+
+  if (state.matches("success") || state.matches("resendVerificationSuccess")) {
     return (
       <div>
+        <h1>Thank you!</h1>
         <p>
-          Email verification has been sent. Look at your email to verify it.
+          We&apos;ve {state.matches("resendVerificationSuccess") ? "re" : ""}
+          sent an email to {email}.
+        </p>
+        <p>Please click the link in that message to activate your account.</p>
+        <p>
+          Didn&apos;t receive the link?{" "}
+          <button onClick={handleResendClick}>
+            Click here to send another one.
+          </button>
         </p>
       </div>
     );
   }
+
+  if (state.matches("resendingVerification")) {
+    return <p>Resending email confirmation...</p>;
+  }
+
+  if (state.matches("resendingVerificationError")) {
+    return (
+      <div>
+        {state.matches("resendVerificationError.generic") && (
+          <p>
+            Something went wrong.{" "}
+            <button onClick={handleResendClick}>
+              Try resending verification email again.
+            </button>
+          </p>
+        )}
+        {state.matches("resendVerificationError.alreadyVerified") && (
+          <p>
+            Your email was already verified.{" "}
+            <Link to="/login">Click here to login.</Link>
+          </p>
+        )}
+        {state.matches("userNotFound") && (
+          <p>Account for {email} was not found.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <form onSubmit={handleSubmit}>

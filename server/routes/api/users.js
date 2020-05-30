@@ -104,6 +104,7 @@ router.post("/confirmation", auth.optional, async (req, res) => {
     await VerificationTokens.findByIdAndDelete(verificationToken.id);
     return res.status(200).json({ status: "ok" });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: JSON.stringify(e) });
   }
 });
@@ -121,12 +122,14 @@ router.post("/resend-token", auth.optional, async (req, res) => {
     if (user.isVerified) {
       return res.status(400).json({ message: "User already verified" });
     }
+    await VerificationTokens.findOneAndDelete({ _userId: user._id });
 
-    const verificationToken = new VerificationTokens({ __userId: user._id });
+    const verificationToken = new VerificationTokens({ _userId: user._id });
     await verificationToken.save();
     await user.sendEmail(verificationToken.token);
     res.json({ status: "ok" });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: JSON.stringify(e) });
   }
 });
