@@ -3,6 +3,7 @@ const passport = require("passport");
 const router = require("express").Router();
 const auth = require("../auth");
 const Users = mongoose.model("Users");
+const VerificationTokens = mongoose.model("VerificationTokens");
 const passwordChecker = require("owasp-password-strength-test");
 
 router.post("/", auth.optional, async (req, res) => {
@@ -64,9 +65,70 @@ router.post("/", auth.optional, async (req, res) => {
   const finalUser = new Users(user);
   finalUser.setPassword(user.password);
 
-  return finalUser
-    .save()
-    .then(() => res.json({ user: finalUser.toAuthJSON() }));
+  try {
+    await finalUser.save();
+
+    const verificationToken = new VerificationTokens({
+      _userId: finalUser._id,
+    });
+    await verificationToken.save();
+    await finalUser.sendEmail(verificationToken.token);
+
+    res.json({ status: "ok" });
+  } catch (e) {
+    res.status(500).json({ error: JSON.stringify(e) });
+  }
+});
+
+router.post("/confirmation", auth.optional, async (req, res) => {
+  const {
+    body: { token },
+  } = req;
+
+  try {
+    const verificationToken = await VerificationTokens.findOne({ token });
+    if (!verificationToken) {
+      return res.status(400).json({ error: "Token not found" });
+    }
+    const user = await Users.findOne({ _id: verificationToken._userId });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ error: "User already verified" });
+    }
+
+    user.isVerified = true;
+    await user.save();
+    await VerificationTokens.findByIdAndDelete(verificationToken.id);
+    return res.status(200).json({ status: "ok" });
+  } catch (e) {
+    res.status(500).json({ error: JSON.stringify(e) });
+  }
+});
+
+router.post("/resend-token", auth.optional, async (req, res) => {
+  const {
+    body: { email },
+  } = req;
+
+  try {
+    const user = await Users.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User already verified" });
+    }
+
+    const verificationToken = new VerificationTokens({ __userId: user._id });
+    await verificationToken.save();
+    await user.sendEmail(verificationToken.token);
+    res.json({ status: "ok" });
+  } catch (e) {
+    res.status(500).json({ error: JSON.stringify(e) });
+  }
 });
 
 router.post("/login", auth.optional, (req, res, next) => {
@@ -100,6 +162,11 @@ router.post("/login", auth.optional, (req, res, next) => {
 
       if (passportUser) {
         const user = passportUser;
+        if (!user.isVerified) {
+          return res.status(401).json({
+            errors: { verified: "user not verified" },
+          });
+        }
         user.token = passportUser.generateJWT();
 
         return res.json({ user: user.toAuthJSON() });
