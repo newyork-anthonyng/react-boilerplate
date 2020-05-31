@@ -182,11 +182,10 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", addUserMiddleware, async (req, res) => {
   if (!req.user) {
-    return res.sendStatus(400);
+    return res.status(400).json({ errors: "Token expired" });
   }
 
   const user = await Users.findById(req.user.id);
-  console.log(user);
 
   if (user) {
     return res.json({

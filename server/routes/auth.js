@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Users = mongoose.model("Users");
 
-function addUserMiddleware(req, res, next) {
+async function addUserMiddleware(req, res, next) {
   const token = getTokenFromHeaders(req);
 
   if (token) {
@@ -11,13 +11,12 @@ function addUserMiddleware(req, res, next) {
       req.user = user;
     } catch (err) {
       const refreshToken = getRefreshTokenFromHeaders(req);
-      const newTokens = refreshTokens(token, refreshToken);
+      const newToken = await refreshTokens(refreshToken);
 
-      if (newTokens.token && newTokens.refreshToken) {
-        res.set("x-token", newTokens.token);
-        res.set("x-refresh-token", newTokens.refreshToken);
+      if (newToken.token) {
+        res.set("x-token", newToken.token);
       }
-      req.user = newTokens.user;
+      req.user = newToken.user;
     }
   }
 
@@ -32,7 +31,7 @@ const getRefreshTokenFromHeaders = (req) => {
   return req.headers["x-refresh-token"];
 };
 
-async function refreshTokens(token, refreshToken) {
+async function refreshTokens(refreshToken) {
   let userId = -1;
   try {
     const {
@@ -46,8 +45,10 @@ async function refreshTokens(token, refreshToken) {
   const user = await Users.findById(userId);
   return {
     token: user.generateJWT(),
-    refreshToken: user.generateRefreshToken(),
-    user,
+    user: {
+      id: user._id,
+      email: user.email,
+    },
   };
 }
 
