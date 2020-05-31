@@ -1,29 +1,55 @@
-const jwt = require("express-jwt");
+const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const Users = mongoose.model("Users");
 
-const getTokenFromHeaders = (req) => {
-  const {
-    headers: { authorization },
-  } = req;
+async function addUserMiddleware(req, res, next) {
+  const token = getTokenFromHeaders(req);
 
-  if (authorization && authorization.split(" ")[0] === "Token") {
-    return authorization.split(" ")[1];
+  if (token) {
+    try {
+      const { user } = jwt.verify(token, process.env.jwt_secret);
+      req.user = user;
+    } catch (err) {
+      const refreshToken = getRefreshTokenFromHeaders(req);
+      const newToken = await refreshTokens(refreshToken);
+
+      if (newToken.token) {
+        res.set("x-token", newToken.token);
+      }
+      req.user = newToken.user;
+    }
   }
 
-  return null;
+  next();
+}
+
+const getTokenFromHeaders = (req) => {
+  return req.headers["x-token"];
 };
 
-const auth = {
-  required: jwt({
-    secret: process.env.jwt_secret,
-    userProperty: "payload",
-    getToken: getTokenFromHeaders,
-  }),
-  optional: jwt({
-    secret: process.env.jwt_secret,
-    userProperty: "payload",
-    getToken: getTokenFromHeaders,
-    credentialsRequired: false,
-  }),
+const getRefreshTokenFromHeaders = (req) => {
+  return req.headers["x-refresh-token"];
 };
 
-module.exports = auth;
+async function refreshTokens(refreshToken) {
+  let userId = -1;
+  try {
+    const {
+      user: { id },
+    } = jwt.verify(refreshToken, process.env.jwt_secret);
+    userId = id;
+  } catch (err) {
+    return {};
+  }
+
+  const user = await Users.findById(userId);
+  return {
+    token: user.generateJWT(),
+    user: {
+      id: user._id,
+      email: user.email,
+    },
+  };
+}
+
+module.exports = addUserMiddleware;

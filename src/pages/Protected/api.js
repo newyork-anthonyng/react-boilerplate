@@ -1,32 +1,24 @@
+const PROFILE_URL = `/api/users/me`;
 import auth from "../auth";
-const LOGIN_URL = `/api/users/login`;
 
-function login({ email, password }) {
+function profile() {
   return new Promise((resolve, reject) => {
-    fetch(LOGIN_URL, {
-      method: "POST",
+    fetch(PROFILE_URL, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "x-token": auth.token,
+        "x-refresh-token": auth.refreshToken,
       },
-      body: JSON.stringify({
-        user: {
-          email,
-          password,
-        },
-      }),
     })
       .then((response) => {
+        auth.inspectHeaders(response.headers);
         return response.json();
       })
       .then((response) => {
         if (response.errors) {
           reject(response);
         } else {
-          auth.saveJWT({
-            token: response.user.token,
-            refreshToken: response.user.refreshToken,
-          });
-
           resolve(response);
         }
       })
@@ -36,4 +28,4 @@ function login({ email, password }) {
   });
 }
 
-export default login;
+export default profile;

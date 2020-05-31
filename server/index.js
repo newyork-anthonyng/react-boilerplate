@@ -16,7 +16,6 @@ mongoose.set("debug", true);
 mongoose.set("useUnifiedTopology", true);
 
 require("./models/index");
-require("./config/passport");
 app.use("/api", require("./routes"));
 
 setupMiddleware(app);

@@ -1,12 +1,11 @@
 const mongoose = require("mongoose");
-const passport = require("passport");
 const router = require("express").Router();
-const auth = require("../auth");
+const addUserMiddleware = require("../auth");
 const Users = mongoose.model("Users");
 const VerificationTokens = mongoose.model("VerificationTokens");
 const passwordChecker = require("owasp-password-strength-test");
 
-router.post("/", auth.optional, async (req, res) => {
+router.post("/", async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -80,7 +79,7 @@ router.post("/", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/confirmation", auth.optional, async (req, res) => {
+router.post("/confirmation", async (req, res) => {
   const {
     body: { token },
   } = req;
@@ -109,7 +108,7 @@ router.post("/confirmation", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/resend-token", auth.optional, async (req, res) => {
+router.post("/resend-token", async (req, res) => {
   const {
     body: { email },
   } = req;
@@ -134,7 +133,7 @@ router.post("/resend-token", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/login", auth.optional, (req, res, next) => {
+router.post("/login", async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -155,42 +154,53 @@ router.post("/login", auth.optional, (req, res, next) => {
     });
   }
 
-  return passport.authenticate(
-    "local",
-    { session: false },
-    (err, passportUser, info) => {
-      if (err) {
-        return next(err);
-      }
-
-      if (passportUser) {
-        const user = passportUser;
-        if (!user.isVerified) {
-          return res.status(401).json({
-            errors: { verified: "user not verified" },
-          });
-        }
-        user.token = passportUser.generateJWT();
-
-        return res.json({ user: user.toAuthJSON() });
-      }
-
-      return res.status(400).json(info);
-    }
-  )(req, res, next);
-});
-
-router.get("/current", auth.required, async (req, res) => {
-  const {
-    payload: { id },
-  } = req;
-
-  const user = await Users.findById(id);
-  if (!user) {
-    return res.sendStatus(400);
+  const foundUser = await Users.findOne({ email: user.email });
+  const isValidUser = foundUser && foundUser.validatePassword(user.password);
+  if (!isValidUser) {
+    return res.status(422).json({
+      errors: {
+        email: "Email/password combination is invalid",
+      },
+    });
   }
 
-  return res.json({ user: user.toAuthJSON() });
+  if (!foundUser.isVerified) {
+    return res.status(401).json({
+      errors: { verified: "user not verified" },
+    });
+  }
+
+  return res.json({
+    user: {
+      id: foundUser._id,
+      email: foundUser.email,
+      token: foundUser.generateJWT(),
+      refreshToken: foundUser.generateRefreshToken(),
+    },
+  });
+});
+
+router.get("/me", addUserMiddleware, async (req, res) => {
+  if (!req.user) {
+    return res.status(400).json({ errors: "Token expired" });
+  }
+
+  const user = await Users.findById(req.user.id);
+
+  if (user) {
+    return res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    });
+  } else {
+    return res.status(400).json({
+      errors: "User not found",
+    });
+  }
 });
 
 module.exports = router;

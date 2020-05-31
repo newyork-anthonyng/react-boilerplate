@@ -15,53 +15,60 @@ const UsersSchema = new Schema({
 });
 
 UsersSchema.methods.setPassword = function (password) {
-  this.salt = crypto.randomBytes(16).toString("hex");
-  this.hash = crypto
-    .pbkdf2Sync(password, this.salt, 10000, 512, "sha512")
-    .toString("hex");
+  this.salt = generateSalt();
+  this.hash = generatePasswordHash(password, this.salt);
 };
 
-UsersSchema.methods.validatePassword = function (password) {
-  const hash = crypto
-    .pbkdf2Sync(password, this.salt, 10000, 512, "sha512")
+function generateSalt() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function generatePasswordHash(password, salt) {
+  return crypto
+    .pbkdf2Sync(password, salt, 10000, 512, "sha512")
     .toString("hex");
+}
+
+UsersSchema.methods.validatePassword = function (password) {
+  const hash = generatePasswordHash(password, this.salt);
   return this.hash === hash;
 };
 
-function getExpirationDate() {
-  const today = new Date();
-  const thirtyMinutesInMs = 30 * 60000;
-  const expirationDate = new Date(today.getTime() + thirtyMinutesInMs);
-
-  return expirationDate;
-}
-
 UsersSchema.methods.generateJWT = function () {
-  const expirationDate = getExpirationDate();
-
   return jwt.sign(
     {
-      id: this._id,
-      email: this.email,
-      exp: parseInt(expirationDate.getTime() / 1000, 10),
+      user: {
+        id: this._id,
+        email: this.email,
+      },
     },
-    process.env.jwt_secret
+    process.env.jwt_secret,
+    {
+      expiresIn: "15m",
+    }
   );
 };
 
-UsersSchema.methods.toAuthJSON = function () {
-  return {
-    id: this._id,
-    email: this.email,
-    token: this.generateJWT(),
-  };
+UsersSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      user: {
+        id: this._id,
+        email: this.email,
+      },
+    },
+    process.env.jwt_secret,
+    {
+      expiresIn: "7d",
+    }
+  );
 };
 
-UsersSchema.methods.sendEmail = function (token) {
+UsersSchema.methods.sendEmail = function (verificationToken) {
   sendEmail({
     firstName: this.firstName,
     email: this.email,
-    token,
+    token: verificationToken,
   });
 };
 
