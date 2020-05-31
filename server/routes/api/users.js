@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const passport = require("passport");
 const router = require("express").Router();
 const auth = require("../auth");
 const Users = mongoose.model("Users");
@@ -134,7 +133,7 @@ router.post("/resend-token", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/login", auth.optional, (req, res, next) => {
+router.post("/login", auth.optional, async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -155,29 +154,23 @@ router.post("/login", auth.optional, (req, res, next) => {
     });
   }
 
-  return passport.authenticate(
-    "local",
-    { session: false },
-    (err, passportUser, info) => {
-      if (err) {
-        return next(err);
-      }
+  const foundUser = await Users.findOne({ email: user.email });
+  const isValidUser = foundUser && foundUser.validatePassword(user.password);
+  if (!isValidUser) {
+    return res.status(422).json({
+      errors: {
+        email: "Email/password combination is invalid",
+      },
+    });
+  }
 
-      if (passportUser) {
-        const user = passportUser;
-        if (!user.isVerified) {
-          return res.status(401).json({
-            errors: { verified: "user not verified" },
-          });
-        }
-        user.token = passportUser.generateJWT();
+  if (!foundUser.isVerified) {
+    return res.status(401).json({
+      errors: { verified: "user not verified" },
+    });
+  }
 
-        return res.json({ user: user.toAuthJSON() });
-      }
-
-      return res.status(400).json(info);
-    }
-  )(req, res, next);
+  return res.json({ user: foundUser.toAuthJSON() });
 });
 
 router.get("/current", auth.required, async (req, res) => {

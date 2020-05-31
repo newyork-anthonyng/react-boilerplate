@@ -15,16 +15,22 @@ const UsersSchema = new Schema({
 });
 
 UsersSchema.methods.setPassword = function (password) {
-  this.salt = crypto.randomBytes(16).toString("hex");
-  this.hash = crypto
-    .pbkdf2Sync(password, this.salt, 10000, 512, "sha512")
-    .toString("hex");
+  this.salt = generateSalt();
+  this.hash = generatePasswordHash(password, this.salt);
 };
 
-UsersSchema.methods.validatePassword = function (password) {
-  const hash = crypto
-    .pbkdf2Sync(password, this.salt, 10000, 512, "sha512")
+function generateSalt() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function generatePasswordHash(password, salt) {
+  return crypto
+    .pbkdf2Sync(password, salt, 10000, 512, "sha512")
     .toString("hex");
+}
+
+UsersSchema.methods.validatePassword = function (password) {
+  const hash = generatePasswordHash(password, this.salt);
   return this.hash === hash;
 };
 
