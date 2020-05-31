@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 const router = require("express").Router();
-const auth = require("../auth");
+const addUserMiddleware = require("../auth");
 const Users = mongoose.model("Users");
 const VerificationTokens = mongoose.model("VerificationTokens");
 const passwordChecker = require("owasp-password-strength-test");
 
-router.post("/", auth.optional, async (req, res) => {
+router.post("/", async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -79,7 +79,7 @@ router.post("/", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/confirmation", auth.optional, async (req, res) => {
+router.post("/confirmation", async (req, res) => {
   const {
     body: { token },
   } = req;
@@ -108,7 +108,7 @@ router.post("/confirmation", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/resend-token", auth.optional, async (req, res) => {
+router.post("/resend-token", async (req, res) => {
   const {
     body: { email },
   } = req;
@@ -133,7 +133,7 @@ router.post("/resend-token", auth.optional, async (req, res) => {
   }
 });
 
-router.post("/login", auth.optional, async (req, res) => {
+router.post("/login", async (req, res) => {
   const {
     body: { user },
   } = req;
@@ -170,20 +170,37 @@ router.post("/login", auth.optional, async (req, res) => {
     });
   }
 
-  return res.json({ user: foundUser.toAuthJSON() });
+  return res.json({
+    user: {
+      id: foundUser._id,
+      email: foundUser.email,
+      token: foundUser.generateJWT(),
+      refreshToken: foundUser.generateRefreshToken(),
+    },
+  });
 });
 
-router.get("/current", auth.required, async (req, res) => {
-  const {
-    payload: { id },
-  } = req;
-
-  const user = await Users.findById(id);
-  if (!user) {
+router.get("/me", addUserMiddleware, async (req, res) => {
+  if (!req.user) {
     return res.sendStatus(400);
   }
 
-  return res.json({ user: user.toAuthJSON() });
+  const user = await Users.findById(req.user.id);
+  console.log(user);
+
+  if (user) {
+    return res.json({
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    });
+  } else {
+    return res.status(400).json({
+      errors: "User not found",
+    });
+  }
 });
 
 module.exports = router;
