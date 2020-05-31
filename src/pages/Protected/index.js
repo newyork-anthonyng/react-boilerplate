@@ -1,9 +1,10 @@
 import React from "react";
+import { Redirect } from "react-router-dom";
 import { useMachine } from "@xstate/react";
 import machine from "./machine";
 
 function ProtectedPage() {
-  const [state] = useMachine(machine);
+  const [state, send] = useMachine(machine);
   const { firstName, lastName, email } = state.context;
 
   if (state.matches("loading")) {
@@ -14,9 +15,22 @@ function ProtectedPage() {
     );
   }
 
+  if (state.matches("loggingOut")) {
+    return (
+      <div>
+        <Redirect to="/login" />
+      </div>
+    );
+  }
+
+  function handleLogoutClick() {
+    send({ type: "LOGOUT" });
+  }
+
   if (state.matches("success")) {
     return (
       <div>
+        <button onClick={handleLogoutClick}>Logout</button>
         <p>
           Name: {firstName} {lastName}
         </p>

@@ -26,7 +26,6 @@ function login({ email, password }) {
             token: response.user.token,
             refreshToken: response.user.refreshToken,
           });
-          auth.isAuthenticated = true;
 
           resolve(response);
         }

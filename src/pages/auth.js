@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 
+// TODO: Refactor this. Should this be a class?
+
 function getJWT() {
   const token = localStorage.getItem("token");
   const refreshToken = localStorage.getItem("refreshToken");
@@ -8,24 +10,41 @@ function getJWT() {
 }
 
 const auth = {
-  isAuthenticated: false,
+  isAuthenticated,
   token: null,
   refreshToken: null,
   saveJWT,
   inspectHeaders,
+  logout,
 };
+
+function isAuthenticated() {
+  if (auth.token) {
+    const isExpired = isTokenExpired(auth.token);
+    if (!isExpired) {
+      return true;
+    }
+  }
+
+  if (auth.refreshToken) {
+    const isExpired = isTokenExpired(auth.refreshToken);
+    if (!isExpired) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function saveJWT({ token, refreshToken }) {
   if (token) {
+    auth.token = token;
     localStorage.setItem("token", token);
   }
   if (refreshToken) {
+    auth.refreshToken = refreshToken;
     localStorage.setItem("refreshToken", refreshToken);
   }
-
-  auth.isAuthenticated = !!(token || refreshToken);
-  auth.token = token;
-  auth.refreshToken = refreshToken;
 }
 
 function inspectHeaders(header) {
@@ -33,6 +52,13 @@ function inspectHeaders(header) {
   const refreshToken = header.get("x-refresh-token");
 
   auth.saveJWT({ token, refreshToken });
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  auth.token = null;
+  auth.refreshToken = null;
 }
 
 function initialize() {
@@ -43,22 +69,6 @@ function initialize() {
   }
   if (refreshToken) {
     auth.refreshToken = refreshToken;
-  }
-
-  if (auth.token) {
-    const isExpired = isTokenExpired(auth.token);
-    if (!isExpired) {
-      auth.isAuthenticated = true;
-      return;
-    }
-  }
-
-  if (auth.refreshToken) {
-    const isExpired = isTokenExpired(auth.refreshToken);
-    if (!isExpired) {
-      auth.isAuthenticated = true;
-      return;
-    }
   }
 }
 
@@ -71,6 +81,6 @@ function isTokenExpired(token) {
 }
 
 initialize();
-console.log("is authenticated", auth.isAuthenticated);
+console.log("initially is authenticated", auth.isAuthenticated());
 
 export default auth;

@@ -1,5 +1,6 @@
 import { Machine, assign } from "xstate";
 import loadProfile from "./api";
+import auth from "../auth";
 
 const machine = Machine(
   {
@@ -22,16 +23,22 @@ const machine = Machine(
         },
       },
       success: {
-        type: "final",
+        on: {
+          LOGOUT: {
+            actions: ["logout"],
+            target: "loggingOut",
+          },
+        },
       },
       error: {
         type: "final",
       },
+      loggingOut: {},
     },
   },
   {
     services: {
-      loadProfile: loadProfile,
+      loadProfile,
     },
     actions: {
       cacheResult: assign((_, event) => {
@@ -47,6 +54,7 @@ const machine = Machine(
           lastName,
         };
       }),
+      logout: () => auth.logout(),
     },
   }
 );

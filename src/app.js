@@ -43,7 +43,7 @@ function PrivateRoute({ children, ...rest }) {
     <Route
       {...rest}
       render={({ location }) => {
-        return auth.isAuthenticated ? (
+        return auth.isAuthenticated() ? (
           children
         ) : (
           <DelayedRedirect
