@@ -1,5 +1,5 @@
 import { Machine, assign } from "xstate";
-import auth from "./api";
+import login from "./api";
 import { resendVerification } from "../Signup/api";
 
 const machine = Machine(
@@ -154,7 +154,7 @@ const machine = Machine(
     },
     services: {
       login: (context) => {
-        return auth.login({ email: context.email, password: context.password });
+        return login({ email: context.email, password: context.password });
       },
       resendVerification: (context) => {
         return resendVerification({ email: context.email });

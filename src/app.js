@@ -3,6 +3,7 @@ import { render } from "react-dom";
 import "./styles.css";
 import Login from "./pages/Login/index";
 import Signup from "./pages/Signup/index";
+import ProtectedPage from "./pages/Protected/index";
 import EmailVerification from "./pages/EmailVerification/index";
 import {
   BrowserRouter as Router,
@@ -11,16 +12,8 @@ import {
   Redirect,
   Link,
 } from "react-router-dom";
-import auth from "./pages/Login/api";
+import auth from "./pages/auth";
 import PropTypes from "prop-types";
-
-function ProtectedPage() {
-  return (
-    <div>
-      <h1>Private</h1>
-    </div>
-  );
-}
 
 function DelayedRedirect(props) {
   const [timeToRedirect, setTimeToRedirect] = useState(5);
@@ -49,15 +42,15 @@ function PrivateRoute({ children, ...rest }) {
   return (
     <Route
       {...rest}
-      render={({ location }) =>
-        auth.isAuthenticated ? (
+      render={({ location }) => {
+        return auth.isAuthenticated ? (
           children
         ) : (
           <DelayedRedirect
             to={{ pathname: "/login", state: { from: location } }}
           />
-        )
-      }
+        );
+      }}
     />
   );
 }
