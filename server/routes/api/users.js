@@ -6,92 +6,76 @@ const VerificationTokens = mongoose.model("VerificationTokens");
 const passwordChecker = require("owasp-password-strength-test");
 
 router.post("/", async (req, res) => {
-  console.log("post create new user");
-  // console.log(req.body);
-  // return res.json({});
+  const {
+    body: { user },
+  } = req;
+
+  if (!user.email) {
+    return res.status(422).json({
+      errors: {
+        email: "is required",
+      },
+    });
+  }
+
+  if (!user.firstName) {
+    return res.status(422).json({
+      errors: {
+        firstName: "is required",
+      },
+    });
+  }
+
+  if (!user.lastName) {
+    return res.status(422).json({
+      errors: {
+        lastName: "is required",
+      },
+    });
+  }
+
+  if (!user.password) {
+    return res.status(422).json({
+      errors: {
+        password: "is required",
+      },
+    });
+  }
+
+  const passwordTestResult = passwordChecker.test(user.password);
+  const isPasswordWeak = passwordTestResult.errors.length > 0;
+  if (isPasswordWeak) {
+    return res.status(422).json({
+      errors: {
+        password: passwordTestResult.errors,
+      },
+    });
+  }
+
+  const existingUser = await Users.findOne({ email: user.email });
+  if (existingUser) {
+    return res.status(422).json({
+      errors: {
+        email: "is taken",
+      },
+    });
+  }
+
+  const finalUser = new Users(user);
+  finalUser.setPassword(user.password);
+
   try {
-    const {
-      body: { user },
-    } = req;
+    await finalUser.save();
 
-    if (!user.email) {
-      return res.status(422).json({
-        errors: {
-          email: "is required",
-        },
-      });
-    }
+    const verificationToken = new VerificationTokens({
+      _userId: finalUser._id,
+    });
+    await verificationToken.save();
+    await finalUser.sendEmail(verificationToken.token);
 
-    if (!user.firstName) {
-      return res.status(422).json({
-        errors: {
-          firstName: "is required",
-        },
-      });
-    }
-
-    if (!user.lastName) {
-      return res.status(422).json({
-        errors: {
-          lastName: "is required",
-        },
-      });
-    }
-
-    if (!user.password) {
-      return res.status(422).json({
-        errors: {
-          password: ["is required"],
-        },
-      });
-    }
-
-    const passwordTestResult = passwordChecker.test(user.password);
-    const isPasswordWeak = passwordTestResult.errors.length > 0;
-    if (isPasswordWeak) {
-      return res.status(422).json({
-        errors: {
-          password: passwordTestResult.errors,
-        },
-      });
-    }
-
-    console.log("getting existing user");
-    const existingUser = await Users.findOne({ email: user.email });
-    console.log("existing user", existingUser);
-    if (existingUser) {
-      return res.status(422).json({
-        errors: {
-          email: "is taken",
-        },
-      });
-    }
-
-    console.log("creating new user");
-    const finalUser = new Users(user);
-    console.log("setting password");
-    finalUser.setPassword(user.password);
-
-    try {
-      console.log("saving user");
-      await finalUser.save();
-
-      console.log("creating verification token");
-      const verificationToken = new VerificationTokens({
-        _userId: finalUser._id,
-      });
-      console.log("saving verification token");
-      await verificationToken.save();
-      console.log("sending email");
-      await finalUser.sendEmail(verificationToken.token);
-
-      res.json({ status: "ok" });
-    } catch (e) {
-      res.status(500).json({ error: JSON.stringify(e) });
-    }
+    res.json({ status: "ok" });
   } catch (e) {
-    console.error("there was an error!!!");
-    console.error(e);
+    res.status(500).json({ error: JSON.stringify(e) });
   }
 });
 

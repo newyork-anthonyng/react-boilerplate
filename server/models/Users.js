@@ -65,7 +65,6 @@ UsersSchema.methods.generateRefreshToken = function () {
 };
 
 UsersSchema.methods.sendEmail = function (verificationToken) {
-  return;
   sendEmail({
     firstName: this.firstName,
     email: this.email,
