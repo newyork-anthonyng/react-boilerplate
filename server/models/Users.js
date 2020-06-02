@@ -65,6 +65,7 @@ UsersSchema.methods.generateRefreshToken = function () {
 };
 
 UsersSchema.methods.sendEmail = function (verificationToken) {
+  return;
   sendEmail({
     firstName: this.firstName,
     email: this.email,
@@ -72,4 +73,4 @@ UsersSchema.methods.sendEmail = function (verificationToken) {
   });
 };
 
-mongoose.model("Users", UsersSchema);
+module.exports = mongoose.model("Users", UsersSchema);
