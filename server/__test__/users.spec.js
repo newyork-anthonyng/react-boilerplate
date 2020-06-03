@@ -194,7 +194,78 @@ describe("/", () => {
 });
 
 describe("/confirmation", () => {
-  it("should verify user with valid token");
-  it("should return error if user is already verified");
-  it("should return error if no valid user is found");
+  let user;
+  let verificationToken;
+
+  beforeEach(async () => {
+    user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      password: "Thisisastrongpassword1",
+    });
+    await user.save();
+
+    verificationToken = new VerificationTokens({ _userId: user.id });
+    await verificationToken.save();
+  });
+
+  it("should verify user with valid token", async () => {
+    const response = await request.post("/confirmation").send({
+      token: verificationToken.token,
+    });
+    expect(response.status).toEqual(200);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "status": "ok",
+      }
+    `);
+
+    const foundToken = await VerificationTokens.findOne({ _userId: user._id });
+    expect(foundToken).toEqual(null);
+  });
+
+  it("should return error if user is already verified", async () => {
+    user.isVerified = true;
+    await user.save();
+
+    const response = await request.post("/confirmation").send({
+      token: verificationToken.token,
+    });
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "error": "User already verified",
+      }
+    `);
+  });
+
+  it("should return error if no valid user is found", async () => {
+    await Users.deleteOne({ email: user.email });
+
+    const response = await request.post("/confirmation").send({
+      token: verificationToken.token,
+    });
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "error": "User not found",
+      }
+    `);
+  });
+
+  it("should return error if no token is found", async () => {
+    const token = verificationToken.token;
+    await VerificationTokens.deleteOne({ _userId: user._id });
+
+    const response = await request.post("/confirmation").send({
+      token,
+    });
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "error": "Token not found",
+      }
+    `);
+  });
 });
