@@ -9,7 +9,7 @@ app.use(require("morgan")("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-mongoose.connect("mongodb://localhost/passport-tutorial", {
+mongoose.connect(process.env.mongodb_path, {
   useNewUrlParser: true,
 });
 mongoose.set("debug", true);
@@ -32,6 +32,4 @@ app.use((err, req, res, _) => {
   });
 });
 
-const listener = app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server listening on ${listener.address().port}`);
-});
+module.exports = app;

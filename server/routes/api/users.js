@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
   if (!user.password) {
     return res.status(422).json({
       errors: {
-        password: ["is required"],
+        password: "is required",
       },
     });
   }
@@ -190,7 +190,6 @@ router.get("/me", addUserMiddleware, async (req, res) => {
   if (user) {
     return res.json({
       user: {
-        id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
