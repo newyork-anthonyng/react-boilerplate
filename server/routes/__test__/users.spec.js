@@ -1,10 +1,10 @@
 require("dotenv").config();
 const dbHandler = require("./db-handler");
-require("../models/index");
+require("../../models/index");
 const bodyParser = require("body-parser");
-jest.mock("../mailer");
-const mailer = require("../mailer");
-const userService = require("../routes/api/users");
+jest.mock("../../mailer");
+const mailer = require("../../mailer");
+const userService = require("../api/users");
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");

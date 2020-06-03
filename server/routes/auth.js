@@ -11,12 +11,12 @@ async function addUserMiddleware(req, res, next) {
       req.user = user;
     } catch (err) {
       const refreshToken = getRefreshTokenFromHeaders(req);
-      const newToken = await refreshTokens(refreshToken);
+      const refreshedInfo = await refreshTokens(refreshToken);
 
-      if (newToken.token) {
-        res.set("x-token", newToken.token);
+      if (refreshedInfo.token) {
+        res.set("x-token", refreshedInfo.token);
       }
-      req.user = newToken.user;
+      req.user = refreshedInfo.user;
     }
   }
 
@@ -43,6 +43,11 @@ async function refreshTokens(refreshToken) {
   }
 
   const user = await Users.findById(userId);
+
+  if (user === null) {
+    return {};
+  }
+
   return {
     token: user.generateJWT(),
     user: {

@@ -12,7 +12,8 @@
     "dev:server": "NODE_ENV=production nodemon server/index.js",
     "lint": "eslint .",
     "lint:staged": "lint-staged",
-    "test": "NODE_ENV=production jest"
+    "test": "jest",
+    "test:watch": "jest --watchAll"
   },
   "lint-staged": {
     "*.js": [
