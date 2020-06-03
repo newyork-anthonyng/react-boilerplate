@@ -1,3 +1,4 @@
+require("dotenv").config();
 const dbHandler = require("./db-handler");
 require("../models/index");
 const bodyParser = require("body-parser");
@@ -18,6 +19,10 @@ const supertest = require("supertest");
 const request = supertest(app);
 
 beforeAll(async () => await dbHandler.connect());
+
+beforeEach(() => {
+  mailer.mockClear();
+});
 
 afterEach(async () => await dbHandler.clearDatabase());
 
@@ -267,5 +272,273 @@ describe("/confirmation", () => {
         "error": "Token not found",
       }
     `);
+  });
+});
+
+describe("/resend-token", () => {
+  let user;
+  let verificationToken;
+
+  beforeEach(async () => {
+    user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      password: "Thisisastrongpassword1",
+    });
+    await user.save();
+
+    verificationToken = new VerificationTokens({ _userId: user.id });
+    await verificationToken.save();
+  });
+
+  it("should create a new token", async (done) => {
+    const response = await request.post("/resend-token").send({
+      email: user.email,
+    });
+    expect(response.status).toEqual(200);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "status": "ok",
+      }
+    `);
+
+    const oldToken = await VerificationTokens.findById(verificationToken._id);
+    expect(oldToken).toEqual(null);
+
+    const newToken = await VerificationTokens.findOne({ _userId: user._id });
+    expect(newToken).not.toEqual(null);
+
+    expect(mailer).toHaveBeenCalledTimes(1);
+    expect(mailer.mock.calls[0][0].email).toEqual(user.email);
+    expect(mailer.mock.calls[0][0].firstName).toEqual(user.firstName);
+    expect(mailer.mock.calls[0][0].token).toBeTruthy();
+
+    done();
+  });
+
+  it("should send error if user is not found", async (done) => {
+    const userEmail = user.email;
+    await Users.deleteOne({ email: user.email });
+
+    const response = await request.post("/resend-token").send({
+      email: userEmail,
+    });
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "message": "User not found",
+      }
+    `);
+
+    expect(mailer).not.toHaveBeenCalled();
+    done();
+  });
+
+  it("should send error if user is already verified", async (done) => {
+    user.isVerified = true;
+    await user.save();
+
+    const response = await request.post("/resend-token").send({
+      email: user.email,
+    });
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "message": "User already verified",
+      }
+    `);
+
+    expect(mailer).not.toHaveBeenCalled();
+    done();
+  });
+});
+
+describe("/login", () => {
+  let user;
+  let verificationToken;
+  let password;
+
+  beforeEach(async () => {
+    password = "Thisisastrongpassword1";
+    user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      isVerified: true,
+    });
+    user.setPassword(password);
+    await user.save();
+
+    verificationToken = new VerificationTokens({ _userId: user.id });
+    await verificationToken.save();
+  });
+
+  it("should create tokens", async (done) => {
+    const response = await request.post("/login").send({
+      user: {
+        email: user.email,
+        password,
+      },
+    });
+
+    expect(response.status).toEqual(200);
+    expect(response.body.user.email).toEqual(user.email);
+    expect(response.body.user.refreshToken).not.toEqual(undefined);
+    expect(response.body.user.token).not.toEqual(undefined);
+
+    done();
+  });
+
+  it("should return error if email is missing", async (done) => {
+    const response = await request.post("/login").send({
+      user: {
+        password,
+      },
+    });
+
+    expect(response.status).toEqual(422);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": Object {
+          "email": "is required",
+        },
+      }
+    `);
+
+    done();
+  });
+
+  it("should return error if password is missing", async (done) => {
+    const response = await request.post("/login").send({
+      user: {
+        email: user.email,
+      },
+    });
+
+    expect(response.status).toEqual(422);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": Object {
+          "password": "is required",
+        },
+      }
+    `);
+
+    done();
+  });
+
+  it("should return error if email/password is not valid", async (done) => {
+    const response = await request.post("/login").send({
+      user: {
+        email: user.email,
+        password: "invalid-password",
+      },
+    });
+
+    expect(response.status).toEqual(422);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": Object {
+          "email": "Email/password combination is invalid",
+        },
+      }
+    `);
+
+    done();
+  });
+
+  it("should return error if user is not verified", async (done) => {
+    user.isVerified = false;
+    await user.save();
+    const response = await request.post("/login").send({
+      user: {
+        email: user.email,
+        password,
+      },
+    });
+
+    expect(response.status).toEqual(401);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": Object {
+          "verified": "user not verified",
+        },
+      }
+    `);
+
+    done();
+  });
+});
+
+describe("/me", () => {
+  let user;
+  let password;
+
+  beforeEach(async () => {
+    password = "Thisisastrongpassword1";
+    user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      isVerified: true,
+    });
+    user.setPassword(password);
+    await user.save();
+  });
+
+  it("should return user data", async (done) => {
+    let response = await request.post("/login").send({
+      user: {
+        email: user.email,
+        password,
+      },
+    });
+    const jwtToken = response.body.user.token;
+
+    response = await request.get("/me").set("x-token", jwtToken);
+
+    expect(response.status).toEqual(200);
+    expect(response.body.user).not.toEqual(null);
+    expect(response.body.user.email).not.toEqual(null);
+    expect(response.body.user.firstName).not.toEqual(null);
+    expect(response.body.user.lastName).not.toEqual(null);
+    done();
+  });
+
+  it("should return error if token is invalid", async (done) => {
+    const response = await request
+      .get("/me")
+      .set("x-token", "someinvalid.json.token");
+
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": "Token expired",
+      }
+    `);
+    done();
+  });
+
+  it("should return error if user is not found", async (done) => {
+    let response = await request.post("/login").send({
+      user: {
+        email: user.email,
+        password,
+      },
+    });
+    const jwtToken = response.body.user.token;
+    await Users.findByIdAndDelete(user._id);
+
+    response = await request.get("/me").set("x-token", jwtToken);
+
+    expect(response.status).toEqual(400);
+    expect(response.body).toMatchInlineSnapshot(`
+      Object {
+        "errors": "User not found",
+      }
+    `);
+
+    done();
   });
 });

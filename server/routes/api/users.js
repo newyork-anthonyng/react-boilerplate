@@ -190,7 +190,6 @@ router.get("/me", addUserMiddleware, async (req, res) => {
   if (user) {
     return res.json({
       user: {
-        id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
