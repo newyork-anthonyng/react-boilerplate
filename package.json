@@ -12,8 +12,9 @@
     "dev:server": "NODE_ENV=production nodemon server/index.js",
     "lint": "eslint .",
     "lint:staged": "lint-staged",
-    "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test": "jest --config jest.server.config.js",
+    "test:watch": "jest --watchAll",
+    "test:front": "jest ./src --config jest.front.config.js --watchAll"
   },
   "lint-staged": {
     "*.js": [
@@ -32,6 +33,8 @@
     "@babel/core": "^7.9.0",
     "@babel/preset-env": "^7.9.5",
     "@babel/preset-react": "^7.9.4",
+    "@testing-library/jest-dom": "^5.9.0",
+    "@testing-library/react": "^10.0.6",
     "babel-loader": "^8.1.0",
     "css-loader": "^3.5.3",
     "eslint": "^6.8.0",
@@ -55,6 +58,7 @@
   },
   "dependencies": {
     "@xstate/react": "^0.8.1",
+    "babel-jest": "^26.0.1",
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
