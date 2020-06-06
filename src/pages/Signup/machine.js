@@ -1,6 +1,34 @@
 import { Machine, assign } from "xstate";
-import { signup, resendVerification } from "./api";
 import passwordChecker from "owasp-password-strength-test";
+
+const SIGNUP_URL = `/api/users`;
+function signupApi({ firstName, lastName, email, password }) {
+  return new Promise((resolve, reject) => {
+    fetch(SIGNUP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user: {
+          firstName,
+          lastName,
+          email,
+          password,
+        },
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return reject(await response.json());
+        }
+        return response.json();
+      })
+      .then((response) => {
+        resolve(response);
+      });
+  });
+}
 
 const machine = Machine(
   {
@@ -15,37 +43,6 @@ const machine = Machine(
     initial: "ready",
     states: {
       ready: {
-        on: {
-          INPUT_FIRST_NAME: {
-            target: ["ready.firstName.noError"],
-            actions: ["cacheFirstName"],
-          },
-          INPUT_LAST_NAME: {
-            target: ["ready.lastName.noError"],
-            actions: ["cacheLastName"],
-          },
-          INPUT_EMAIL: {
-            target: ["ready.email.noError"],
-            actions: ["cacheEmail"],
-          },
-          INPUT_PASSWORD: {
-            target: ["ready.password.noError"],
-            actions: ["cachePassword"],
-          },
-          SUBMIT: [
-            { cond: "emptyFirstName", target: "ready.firstName.error.empty" },
-            { cond: "emptyLastName", target: "ready.lastName.error.empty" },
-            { cond: "emptyEmail", target: "ready.email.error.empty" },
-            { cond: "emptyPassword", target: "ready.password.error.empty" },
-            {
-              cond: "weakPassword",
-              actions: ["cachePasswordErrors"],
-              target: "ready.password.error.weak",
-            },
-            { target: "submitting" },
-          ],
-        },
-
         type: "parallel",
         states: {
           firstName: {
@@ -54,7 +51,9 @@ const machine = Machine(
               noError: {},
               error: {
                 initial: "empty",
-                states: { empty: {} },
+                states: {
+                  empty: {},
+                },
               },
             },
           },
@@ -64,7 +63,9 @@ const machine = Machine(
               noError: {},
               error: {
                 initial: "empty",
-                states: { empty: {} },
+                states: {
+                  empty: {},
+                },
               },
             },
           },
@@ -74,7 +75,9 @@ const machine = Machine(
               noError: {},
               error: {
                 initial: "empty",
-                states: { empty: {} },
+                states: {
+                  empty: {},
+                },
               },
             },
           },
@@ -91,87 +94,89 @@ const machine = Machine(
               },
             },
           },
+
           auth: {
             initial: "noError",
             states: {
               noError: {},
               error: {
-                initial: "emailTaken",
+                initial: "generic",
                 states: {
+                  generic: {},
                   emailTaken: {},
                 },
               },
             },
           },
         },
+        on: {
+          inputFirstName: {
+            actions: ["cacheFirstName"],
+            target: ["ready.firstName.noError"],
+          },
+          inputLastName: {
+            actions: ["cacheLastName"],
+            target: ["ready.lastName.noError"],
+          },
+          inputEmail: {
+            actions: ["cacheEmail"],
+            target: ["ready.email.noError"],
+          },
+          inputPassword: {
+            actions: ["cachePassword"],
+            target: ["ready.password.noError"],
+          },
+          submit: [
+            { cond: "isFirstNameEmpty", target: "ready.firstName.error.empty" },
+            { cond: "isLastNameEmpty", target: "ready.lastName.error.empty" },
+            { cond: "isEmailEmpty", target: "ready.email.error.empty" },
+            { cond: "isPasswordEmpty", target: "ready.password.error.empty" },
+            {
+              cond: "isPasswordWeak",
+              actions: ["cachePasswordErrors"],
+              target: "ready.password.error.weak",
+            },
+            { target: "submitting" },
+          ],
+        },
       },
       submitting: {
         invoke: {
           src: "signup",
           onDone: "success",
-          onError: "ready.auth.error.emailTaken",
-        },
-      },
-      success: {
-        on: {
-          RESEND_VERIFICATION: {
-            target: "resendingVerification",
-          },
-        },
-      },
-      resendingVerification: {
-        invoke: {
-          src: "resendVerification",
-          onDone: "resendVerificationSuccess",
           onError: [
             {
-              cond: "wasAlreadyVerified",
-              target: "resendVerificationError.alreadyVerified",
+              cond: "isEmailTaken",
+              actions: [],
+              target: "ready.auth.error.emailTaken",
             },
-            {
-              cond: "wasUserNotFound",
-              target: "resendVerificationError.userNotFound",
-            },
-            { target: "resendVerificationError.generic" },
+            { target: "ready.auth.error.generic" },
           ],
         },
       },
-      resendVerificationSuccess: {
-        on: {
-          RESEND_VERIFICATION: {
-            target: "resendingVerification",
-          },
-        },
-      },
-      resendVerificationError: {
-        initial: "generic",
-        states: {
-          generic: {
-            on: {
-              RESEND_VERIFICATION: {
-                target: "#signup.resendingVerification",
-              },
-            },
-          },
-          alreadyVerified: { type: "final" },
-          userNotFound: {
-            type: "final",
-          },
-        },
-      },
+
+      success: {},
     },
   },
   {
+    services: {
+      signup: ({ firstName, lastName, email, password }) => {
+        return signupApi({ firstName, lastName, email, password });
+      },
+    },
     guards: {
-      emptyFirstName: (context) => context.firstName.trim().length === 0,
-      emptyLastName: (context) => context.lastName.trim().length === 0,
-      emptyEmail: (context) => context.email.trim().length === 0,
-      emptyPassword: (context) => context.password.trim().length === 0,
-      weakPassword: (context) => {
+      isFirstNameEmpty: (context) => context.firstName.trim().length === 0,
+      isLastNameEmpty: (context) => context.lastName.trim().length === 0,
+      isEmailEmpty: (context) => context.email.trim().length === 0,
+      isPasswordEmpty: (context) => context.password.trim().length === 0,
+      isPasswordWeak: (context) => {
         const passwordResult = passwordChecker.test(context.password);
         const isPasswordWeak = passwordResult.errors.length > 0;
 
         return isPasswordWeak;
+      },
+      isEmailTaken: (_, event) => {
+        return event.data.email === "is taken";
       },
     },
     actions: {
@@ -189,24 +194,9 @@ const machine = Machine(
       }),
       cachePasswordErrors: assign({
         passwordErrors: (context) => {
-          const passwordResult = passwordChecker.test(context.password);
-
-          return passwordResult.errors;
+          return passwordChecker.test(context.password).errors;
         },
       }),
-    },
-    services: {
-      signup: (context) => {
-        return signup({
-          firstName: context.firstName,
-          lastName: context.lastName,
-          email: context.email,
-          password: context.password,
-        });
-      },
-      resendVerification: (context) => {
-        return resendVerification({ email: context.email });
-      },
     },
   }
 );
