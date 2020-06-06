@@ -1,6 +1,40 @@
 import { Machine, assign } from "xstate";
-import login from "./api";
-import { resendVerification } from "../Signup/api";
+import auth from "../auth";
+
+const LOGIN_URL = `/api/users/login`;
+function loginApi({ email, password }) {
+  return new Promise((resolve, reject) => {
+    fetch(LOGIN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user: {
+          email,
+          password,
+        },
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return reject(await response.json());
+        } else {
+          return response.json();
+        }
+      })
+      .then((response) => {
+        if (response && response.user) {
+          auth.saveJWT({
+            token: response.user.token,
+            refreshToken: response.user.refreshToken,
+          });
+        }
+
+        return resolve(response);
+      });
+  });
+}
 
 const machine = Machine(
   {
@@ -19,25 +53,14 @@ const machine = Machine(
             initial: "noError",
             states: {
               noError: {},
-              error: {
-                initial: "empty",
-                states: {
-                  empty: {},
-                },
-              },
+              empty: {},
             },
           },
-
           password: {
             initial: "noError",
             states: {
               noError: {},
-              error: {
-                initial: "empty",
-                states: {
-                  empty: {},
-                },
-              },
+              empty: {},
             },
           },
 
@@ -45,45 +68,24 @@ const machine = Machine(
             initial: "noError",
             states: {
               noError: {},
-              error: {
-                initial: "unauthorized",
-                states: {
-                  unauthorized: {},
-                },
-              },
+              notVerified: {},
+              unauthorized: {},
             },
           },
         },
-
         on: {
-          INPUT_EMAIL: {
+          inputEmail: {
             actions: ["cacheEmail"],
-            target: [
-              "ready.email.noError",
-              "ready.password.noError",
-              "ready.auth.noError",
-            ],
+            target: ["ready.email.noError"],
           },
-          INPUT_PASSWORD: {
+          inputPassword: {
             actions: ["cachePassword"],
-            target: [
-              "ready.email.noError",
-              "ready.password.noError",
-              "ready.auth.noError",
-            ],
+            target: ["ready.password.noError"],
           },
-          SUBMIT: [
-            {
-              target: "ready.email.error.empty",
-              cond: "emptyEmail",
-            },
-            {
-              target: "ready.password.error.empty",
-              cond: "emptyPassword",
-            },
-            {
-              target: "submitting",
-            },
+          submit: [
+            { cond: "isEmailEmpty", target: "ready.email.empty" },
+            { cond: "isPasswordEmpty", target: "ready.password.empty" },
+            { target: "submitting" },
           ],
         },
       },
@@ -92,73 +94,40 @@ const machine = Machine(
           src: "login",
           onDone: "success",
           onError: [
-            { cond: "isNotVerified", target: "notVerified" },
-            { target: "ready.auth.error.unauthorized" },
+            { cond: "isUserNotVerified", target: "ready.auth.notVerified" },
+            {
+              cond: "isEmailPasswordInvalid",
+              target: "ready.auth.unauthorized",
+            },
           ],
         },
       },
-      notVerified: {
-        on: {
-          RESEND_VERIFICATION: "resendingVerification",
-        },
-      },
-      resendingVerification: {
-        invoke: {
-          src: "resendVerification",
-          onDone: "resendVerificationSuccess",
-          onError: [{ target: "resendVerificationError.generic" }],
-        },
-      },
-      success: {
-        type: "final",
-      },
-      resendVerificationSuccess: {
-        on: {
-          RESEND_VERIFICATION: {
-            target: "resendingVerification",
-          },
-        },
-      },
-      resendVerificationError: {
-        initial: "generic",
-        states: {
-          generic: {
-            on: {
-              RESEND_VERIFICATION: {
-                target: "#login.resendingVerification",
-              },
-            },
-          },
-        },
-      },
+      success: {},
     },
   },
   {
+    services: {
+      login: ({ email, password }) => loginApi({ email, password }),
+    },
     guards: {
-      emptyEmail: (context) => context.email.trim().length === 0,
-      emptyPassword: (context) => context.password.trim().length === 0,
-      isNotVerified: (_, event) => {
-        const { data } = event;
-
-        return data.errors.verified === "user not verified";
+      isEmailEmpty: (context) => context.email.trim().length === 0,
+      isPasswordEmpty: (context) => context.password.trim().length === 0,
+      isUserNotVerified: (_, event) => {
+        return !!event.data.errors.verified;
+      },
+      isEmailPasswordInvalid: (_, event) => {
+        return (
+          event.data.errors.email === "Email/password combination is invalid"
+        );
       },
     },
     actions: {
       cacheEmail: assign({
-        email: (context, event) => event.value,
+        email: (_, event) => event.value,
       }),
-
       cachePassword: assign({
-        password: (context, event) => event.value,
+        password: (_, event) => event.value,
       }),
-    },
-    services: {
-      login: (context) => {
-        return login({ email: context.email, password: context.password });
-      },
-      resendVerification: (context) => {
-        return resendVerification({ email: context.email });
-      },
     },
   }
 );

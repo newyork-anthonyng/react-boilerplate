@@ -93,8 +93,6 @@ it("should make correct fetch call", async () => {
       "method": "POST",
     }
   `);
-
-  global.fetch.mockRestore();
 });
 
 it("should show success page", async () => {
