@@ -44,6 +44,7 @@
     "lint-staged": "^10.2.2",
     "miragejs": "^0.1.38",
     "mongodb-memory-server": "^6.6.1",
+    "msw": "^0.19.0",
     "nodemon": "^2.0.4",
     "postcss-loader": "^3.0.0",
     "pre-commit": "^1.2.2",
@@ -54,7 +55,8 @@
     "webpack-cli": "^3.3.11",
     "webpack-dev-middleware": "^3.7.2",
     "webpack-dev-server": "^3.11.0",
-    "webpack-hot-middleware": "^2.25.0"
+    "webpack-hot-middleware": "^2.25.0",
+    "whatwg-fetch": "^3.0.0"
   },
   "dependencies": {
     "@xstate/react": "^0.8.1",

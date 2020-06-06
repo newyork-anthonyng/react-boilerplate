@@ -1,55 +1,73 @@
 import { Machine } from "xstate";
-import api from "./api";
+
+const CONFIRMATION_URL = `/api/users/confirmation`;
+function verifyEmailApi(token) {
+  return new Promise((resolve, reject) =>
+    fetch(CONFIRMATION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token,
+      }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        return reject(await response.json());
+      }
+      return resolve(response.json());
+    })
+  );
+}
 
 const machine = (token) =>
   Machine(
     {
       id: "emailVerification",
+      initial: "loading",
       context: {
         token,
       },
-      initial: "loading",
       states: {
         loading: {
           invoke: {
             src: "verifyEmail",
             onDone: "success",
             onError: [
-              { cond: "isExpired", target: "failure.expired" },
-              { cond: "wasAlreadyVerified", target: "failure.alreadyVerified" },
-              { cond: "wasUserNotFound", target: "failure.userNotFound" },
+              { cond: "isEmailVerified", target: "error.alreadyVerified" },
+              { cond: "isUserMissing", target: "error.userMissing" },
+              { cond: "isTokenExpired", target: "error.tokenExpired" },
+              { target: "error.generic" },
             ],
           },
         },
-        success: {
-          type: "final",
-        },
-        failure: {
-          initial: "expired",
-
+        success: {},
+        error: {
+          initial: "generic",
           states: {
-            expired: {},
+            generic: {},
             alreadyVerified: {},
-            userNotFound: {},
+            userMissing: {},
+            tokenExpired: {},
           },
         },
       },
     },
     {
       guards: {
-        isExpired: (_, event) => {
-          return event.data.error === "Token not found";
-        },
-        wasAlreadyVerified: (_, event) => {
+        isEmailVerified: (_, event) => {
           return event.data.error === "User already verified";
         },
-        wasUserNotFound: (_, event) => {
+        isUserMissing: (_, event) => {
           return event.data.error === "User not found";
+        },
+        isTokenExpired: (_, event) => {
+          return event.data.error === "Token not found";
         },
       },
       services: {
         verifyEmail: (context) => {
-          return api(context.token);
+          return verifyEmailApi(context.token);
         },
       },
     }

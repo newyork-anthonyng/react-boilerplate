@@ -1,104 +1,63 @@
 import React from "react";
-import { useMachine } from "@xstate/react";
-import machine from "./machine";
 import { Redirect } from "react-router-dom";
+import { useMachine } from "@xstate/react";
+import { Link } from "react-router-dom";
+import machine from "./machine";
 
-function LoginPage() {
+function Login() {
   const [state, send] = useMachine(machine);
-  const { email, password } = state;
+  const { email, password } = state.context;
+  const handleEmailChange = (e) => {
+    send({ type: "inputEmail", value: e.target.value });
+  };
+  const handlePasswordChange = (e) => {
+    send({ type: "inputPassword", value: e.target.value });
+  };
 
-  const handleEmailChange = (e) =>
-    send({ type: "INPUT_EMAIL", value: e.target.value });
-  const handlePasswordChange = (e) =>
-    send({ type: "INPUT_PASSWORD", value: e.target.value });
-  const handleFormSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    send({ type: "SUBMIT" });
+    send({ type: "submit" });
   };
-  const handleResendClick = () => {
-    send({ type: "RESEND_VERIFICATION" });
-  };
-
-  if (state.matches("notVerified")) {
-    return (
-      <div>
-        <p>
-          Email was not verified.{" "}
-          <button onClick={handleResendClick}>Resend verification link.</button>
-        </p>
-      </div>
-    );
-  }
-
-  if (state.matches("resendingVerification")) {
-    return <p>Resending verification email</p>;
-  }
-
-  if (state.matches("resendVerificationSuccess")) {
-    return (
-      <div>
-        <h1>Thank you!</h1>
-        <p>We&apos;ve resent an email to {email}.</p>
-        <p>Please click the link in that message to activate your account.</p>
-        <p>
-          Didn&apos;t receive the link?{" "}
-          <button onClick={handleResendClick}>
-            Click here to send another one.
-          </button>
-        </p>
-      </div>
-    );
-  }
-
-  if (state.matches("resendVerificationError")) {
-    return (
-      <div>
-        <p>
-          Something went wrong.{" "}
-          <button onClick={handleResendClick}>
-            Try resending verification email again.
-          </button>
-        </p>
-      </div>
-    );
-  }
 
   if (state.matches("success")) {
     return <Redirect to="/protected" />;
   }
 
+  if (state.matches("ready.auth.notVerified")) {
+    return (
+      <div>
+        <p>Email is not verified</p>
+        Didn&apos;t receive a verification email?{" "}
+        <Link to="/resend-verification">Click here to send again.</Link>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <form onSubmit={handleFormSubmit}>
+      <form onSubmit={handleSubmit}>
         <label>
           Email
-          <input type="text" onChange={handleEmailChange} value={email}></input>
+          <input type="email" value={email} onChange={handleEmailChange} />
         </label>
-
         <label>
           Password
           <input
             type="password"
-            onChange={handlePasswordChange}
             value={password}
-          ></input>
+            onChange={handlePasswordChange}
+          />
         </label>
 
-        <button type="submit" disabled={!state.matches("ready")}>
-          Login
-        </button>
+        <button type="submit">Login</button>
       </form>
-      <div>
-        {state.matches("ready.email.error.empty") && <p>Email is missing</p>}
-        {state.matches("ready.password.error.empty") && (
-          <p>Password is missing</p>
-        )}
-        {state.matches("ready.auth.error.unauthorized") && (
-          <p>Log in failed. Try again.</p>
-        )}
-      </div>
+      {state.matches("ready.email.empty") && <p>Email is empty</p>}
+      {state.matches("ready.password.empty") && <p>Password is empty</p>}
+      {state.matches("ready.auth.unauthorized") && (
+        <p>Email/password combination is incorrect</p>
+      )}
     </div>
   );
 }
 
-export default LoginPage;
+export default Login;
