@@ -3,6 +3,7 @@ const router = require("express").Router();
 const addUserMiddleware = require("../auth");
 const Users = mongoose.model("Users");
 const VerificationTokens = mongoose.model("VerificationTokens");
+const ResetPasswordTokens = mongoose.model("ResetPasswordTokens");
 const passwordChecker = require("owasp-password-strength-test");
 
 router.post("/", async (req, res) => {
@@ -129,6 +130,32 @@ router.post("/resend-token", async (req, res) => {
     res.json({ status: "ok" });
   } catch (e) {
     console.error(e);
+    res.status(500).json({ error: JSON.stringify(e) });
+  }
+});
+
+router.post("/forgot-password", async (req, res) => {
+  const {
+    body: {
+      user: { email },
+    },
+  } = req;
+
+  try {
+    const user = await Users.findOne({ email });
+    if (!user) {
+      return res.json({ status: "ok" });
+    }
+    if (!user.isVerified) {
+      return res.status(422).json({ error: "User is not verified" });
+    }
+
+    const resetPasswordToken = new ResetPasswordTokens({ _userId: user._id });
+    await resetPasswordToken.save();
+
+    await user.sendResetPassword(resetPasswordToken.token);
+    res.json({ status: "ok" });
+  } catch (e) {
     res.status(500).json({ error: JSON.stringify(e) });
   }
 });

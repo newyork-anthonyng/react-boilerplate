@@ -30,4 +30,25 @@ function sendMail({ email, firstName, token }) {
   });
 }
 
-module.exports = sendMail;
+function sendResetPassword({ email, firstName, token }) {
+  const resetPasswordLink = `localhost:3000/reset-password/${token}`;
+
+  const message = {
+    from: "welcome@earth.com",
+    to: email,
+    subject: "Password Reset",
+    html: `<h1>Hi ${firstName}</h1><p>You requested to reset your password. <a href="${resetPasswordLink}">Click here</a> to finish.</p>`,
+  };
+
+  return new Promise((resolve, reject) => {
+    transport.sendMail(message, function (err, info) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(info);
+      }
+    });
+  });
+}
+
+module.exports = { sendMail, sendResetPassword };

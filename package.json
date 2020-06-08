@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "lint:staged": "lint-staged",
     "test": "jest --config jest.server.config.js",
-    "test:watch": "jest --watchAll",
+    "test:watch": "jest ./server --config jest.server.config.js --watchAll",
     "test:front": "jest ./src --config jest.front.config.js --watchAll"
   },
   "lint-staged": {
