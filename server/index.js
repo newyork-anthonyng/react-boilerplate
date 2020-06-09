@@ -9,7 +9,7 @@ app.use(require("morgan")("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-mongoose.connect(process.env.mongodb_path, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
 });
 mongoose.set("debug", true);
