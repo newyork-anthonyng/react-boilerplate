@@ -1,4 +1,6 @@
+require("dotenv").config();
 const nodemailer = require("nodemailer");
+const { APP_URL } = process.env;
 
 const transport = nodemailer.createTransport({
   host: process.env.nodemailer_host,
@@ -10,7 +12,7 @@ const transport = nodemailer.createTransport({
 });
 
 function sendMail({ email, firstName, token }) {
-  const confirmationLink = `localhost:3000/confirmation/${token}`;
+  const confirmationLink = `${APP_URL}/confirmation/${token}`;
 
   const message = {
     from: "welcome@earth.com",
@@ -31,7 +33,7 @@ function sendMail({ email, firstName, token }) {
 }
 
 function sendResetPassword({ email, firstName, token }) {
-  const resetPasswordLink = `localhost:3000/reset-password/${token}`;
+  const resetPasswordLink = `${APP_URL}/reset-password/${token}`;
 
   const message = {
     from: "welcome@earth.com",
