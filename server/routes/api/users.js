@@ -160,6 +160,40 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
+router.post("/reset-password", async (req, res) => {
+  const {
+    body: { password, token },
+  } = req;
+
+  try {
+    const resetPasswordToken = await ResetPasswordTokens.findOne({ token });
+
+    if (resetPasswordToken) {
+      const passwordTestResult = passwordChecker.test(password);
+      const isPasswordWeak = passwordTestResult.errors.length > 0;
+      if (isPasswordWeak) {
+        return res.status(422).json({
+          errors: {
+            password: passwordTestResult.errors,
+          },
+        });
+      }
+
+      const user = await Users.findById(resetPasswordToken._userId);
+      user.setPassword(password);
+
+      await user.save();
+      return res.json({
+        status: "ok",
+      });
+    } else {
+      return res.status(422).json({ message: `Reset password token expired.` });
+    }
+  } catch (e) {
+    res.status(500).json({ error: JSON.stringify(e) });
+  }
+});
+
 router.post("/login", async (req, res) => {
   const {
     body: { user },

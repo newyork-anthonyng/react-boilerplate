@@ -1,5 +1,5 @@
 import React from "react";
-import { MemoryRouter as Router } from "react-router-dom";
+import { MemoryRouter as Router, Route } from "react-router-dom";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
 import ResetPassword from "./index";
@@ -15,15 +15,25 @@ beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+function mountWithRouter() {
+  render(
+    <Router initialEntries={["/reset-password/abc123"]}>
+      <Route path="/reset-password/:token">
+        <ResetPassword />
+      </Route>
+    </Router>
+  );
+}
+
 it("should render form", async () => {
-  render(<ResetPassword />);
+  mountWithRouter();
 
   expect(screen.getByLabelText("Password")).toBeTruthy();
   expect(screen.getByText("Reset Password"));
 });
 
 it("should allow user to update email", async () => {
-  render(<ResetPassword />);
+  mountWithRouter();
 
   const password = `ThisisastrongPassword1`;
   fireEvent.change(screen.getByLabelText("Password"), {
@@ -34,7 +44,7 @@ it("should allow user to update email", async () => {
 });
 
 it("should render error if password is empty", async () => {
-  render(<ResetPassword />);
+  mountWithRouter();
 
   fireEvent.click(screen.getByText("Reset Password"));
 
@@ -42,7 +52,7 @@ it("should render error if password is empty", async () => {
 });
 
 it("should render error if password is weak", async () => {
-  render(<ResetPassword />);
+  mountWithRouter();
 
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "password" },
@@ -56,7 +66,7 @@ it("should render error if password is weak", async () => {
 
 it("should make correct API call", async () => {
   jest.spyOn(global, "fetch");
-  render(<ResetPassword />);
+  mountWithRouter();
 
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "Thisisastrongpassword1" },
@@ -69,7 +79,7 @@ it("should make correct API call", async () => {
   );
   expect(fetch.mock.calls[0][1]).toMatchInlineSnapshot(`
     Object {
-      "body": "{\\"user\\":{\\"password\\":\\"Thisisastrongpassword1\\"}}",
+      "body": "{\\"password\\":\\"Thisisastrongpassword1\\",\\"token\\":\\"abc123\\"}",
       "headers": Object {
         "Content-Type": "application/json",
       },
@@ -85,11 +95,7 @@ it("should show success screen", async () => {
     })
   );
 
-  render(
-    <Router>
-      <ResetPassword />
-    </Router>
-  );
+  mountWithRouter();
 
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "Thisisastrongpassword1" },
@@ -114,11 +120,7 @@ it("should show error screen if reset-password token is not valid", async () => 
       );
     })
   );
-  render(
-    <Router>
-      <ResetPassword />
-    </Router>
-  );
+  mountWithRouter();
 
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "Thisisastrongpassword1" },
@@ -143,7 +145,7 @@ it("should show error screen if something went wrong", async () => {
       );
     })
   );
-  render(<ResetPassword />);
+  mountWithRouter();
 
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "Thisisastrongpassword1" },

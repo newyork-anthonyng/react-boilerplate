@@ -12,13 +12,14 @@
     "dev:server": "NODE_ENV=production nodemon start.js",
     "lint": "eslint .",
     "lint:staged": "lint-staged",
-    "test": "jest --config jest.server.config.js",
+    "test": "jest ./server --config jest.server.config.js && jest ./src --config jest.front.config.js",
     "test:watch": "jest ./server --config jest.server.config.js --watchAll",
     "test:front": "jest ./src --config jest.front.config.js --watchAll"
   },
   "lint-staged": {
     "*.js": [
-      "npm run lint"
+      "npm run lint",
+      "npm run test"
     ]
   },
   "pre-commit": "lint:staged",

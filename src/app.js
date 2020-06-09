@@ -7,6 +7,7 @@ import ProtectedPage from "./pages/Protected/index";
 import EmailVerification from "./pages/EmailVerification/index";
 import ResendVerification from "./pages/ResendVerification/index";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import {
   BrowserRouter as Router,
   Switch,
@@ -76,10 +77,13 @@ function App() {
             <Link to="/protected">Protected route</Link>
           </li>
           <li>
-            <Link to="resend-verification">Resend verification email</Link>
+            <Link to="/resend-verification">Resend verification email</Link>
           </li>
           <li>
             <Link to="/forgot-password">Forgot password</Link>
+          </li>
+          <li>
+            <Link to="/reset-password">Reset password</Link>
           </li>
         </ul>
       </nav>
@@ -102,6 +106,10 @@ function App() {
 
         <Route path="/resend-verification">
           <ResendVerification />
+        </Route>
+
+        <Route path="/reset-password/:token">
+          <ResetPassword />
         </Route>
 
         <PrivateRoute path="/protected">

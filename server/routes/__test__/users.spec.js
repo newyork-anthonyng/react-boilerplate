@@ -10,6 +10,7 @@ const app = express();
 const mongoose = require("mongoose");
 const Users = mongoose.model("Users");
 const VerificationTokens = mongoose.model("VerificationTokens");
+const ResetPasswordTokens = mongoose.model("ResetPasswordTokens");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -415,6 +416,75 @@ describe("/forgot-password", () => {
     expect(sendResetPassword).not.toHaveBeenCalled();
 
     done();
+  });
+});
+
+describe("reset-password", () => {
+  it("should return success if token is found", async () => {
+    let user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+    });
+    user.setPassword("Thisisastrongpassword1");
+    await user.save();
+
+    const resetPasswordToken = new ResetPasswordTokens({ _userId: user._id });
+    await resetPasswordToken.save();
+
+    const oldPasswordHash = user.hash;
+    const response = await request.post("/reset-password").send({
+      token: resetPasswordToken.token,
+      password: "Thisisastrongpassword1",
+    });
+    user = await Users.findById(user._id);
+    expect(response.status).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(user.hash).not.toEqual(oldPasswordHash);
+  });
+
+  it("should return failure if token is not found", async () => {
+    const response = await request.post("/reset-password").send({
+      token: "invalid-token",
+      password: "Thisisastrongpassword1",
+    });
+
+    expect(response.status).toEqual(422);
+    expect(response.body.message).toEqual("Reset password token expired.");
+  });
+
+  it("should return error if password is weak", async () => {
+    let user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+    });
+    user.setPassword("Thisisastrongpassword1");
+    await user.save();
+
+    const resetPasswordToken = new ResetPasswordTokens({ _userId: user._id });
+    await resetPasswordToken.save();
+
+    const oldPasswordHash = user.hash;
+    const response = await request.post("/reset-password").send({
+      token: resetPasswordToken.token,
+      password: "password",
+    });
+
+    user = await Users.findById(user._id);
+
+    expect(response.status).toEqual(422);
+    expect(response.body.errors).toMatchInlineSnapshot(`
+      Object {
+        "password": Array [
+          "The password must be at least 10 characters long.",
+          "The password must contain at least one uppercase letter.",
+          "The password must contain at least one number.",
+          "The password must contain at least one special character.",
+        ],
+      }
+    `);
+    expect(user.hash).toEqual(oldPasswordHash);
   });
 });
 
