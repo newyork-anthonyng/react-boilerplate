@@ -18,7 +18,8 @@
   },
   "lint-staged": {
     "*.js": [
-      "npm run lint"
+      "npm run lint",
+      "npm run test"
     ]
   },
   "pre-commit": "lint:staged",
