@@ -1,10 +1,11 @@
 import React from "react";
 import { useMachine } from "@xstate/react";
 import machine from "./machine";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 function ResetPassword() {
-  const [state, send] = useMachine(machine);
+  const { token } = useParams();
+  const [state, send] = useMachine(machine(token));
 
   const { password, passwordErrors } = state.context;
 
