@@ -81,6 +81,5 @@ function isTokenExpired(token) {
 }
 
 initialize();
-console.log("initially is authenticated", auth.isAuthenticated());
 
 export default auth;

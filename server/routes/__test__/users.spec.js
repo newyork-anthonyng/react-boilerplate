@@ -3,7 +3,7 @@ const dbHandler = require("./db-handler");
 require("../../models/index");
 const bodyParser = require("body-parser");
 jest.mock("../../mailer");
-const mailer = require("../../mailer");
+const { sendMail, sendResetPassword } = require("../../mailer");
 const userService = require("../api/users");
 const express = require("express");
 const app = express();
@@ -21,7 +21,8 @@ const request = supertest(app);
 beforeAll(async () => await dbHandler.connect());
 
 beforeEach(() => {
-  mailer.mockClear();
+  sendMail.mockClear();
+  sendResetPassword.mockClear();
 });
 
 afterEach(async () => await dbHandler.clearDatabase());
@@ -61,10 +62,10 @@ describe("/", () => {
       _userId: user._id,
     });
     expect(verificationToken).not.toEqual(null);
-    expect(mailer).toHaveBeenCalledTimes(1);
-    expect(mailer.mock.calls[0][0].email).toEqual(newUser.email);
-    expect(mailer.mock.calls[0][0].firstName).toEqual(newUser.firstName);
-    expect(mailer.mock.calls[0][0].token).toBeTruthy();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(sendMail.mock.calls[0][0].email).toEqual(newUser.email);
+    expect(sendMail.mock.calls[0][0].firstName).toEqual(newUser.firstName);
+    expect(sendMail.mock.calls[0][0].token).toBeTruthy();
 
     done();
   });
@@ -309,10 +310,10 @@ describe("/resend-token", () => {
     const newToken = await VerificationTokens.findOne({ _userId: user._id });
     expect(newToken).not.toEqual(null);
 
-    expect(mailer).toHaveBeenCalledTimes(1);
-    expect(mailer.mock.calls[0][0].email).toEqual(user.email);
-    expect(mailer.mock.calls[0][0].firstName).toEqual(user.firstName);
-    expect(mailer.mock.calls[0][0].token).toBeTruthy();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(sendMail.mock.calls[0][0].email).toEqual(user.email);
+    expect(sendMail.mock.calls[0][0].firstName).toEqual(user.firstName);
+    expect(sendMail.mock.calls[0][0].token).toBeTruthy();
 
     done();
   });
@@ -331,7 +332,7 @@ describe("/resend-token", () => {
       }
     `);
 
-    expect(mailer).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
     done();
   });
 
@@ -349,7 +350,70 @@ describe("/resend-token", () => {
       }
     `);
 
-    expect(mailer).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+    done();
+  });
+});
+
+describe("/forgot-password", () => {
+  it("should send error if user is not verified", async (done) => {
+    const user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      password: "Thisisastrongpassword1",
+    });
+    await user.save();
+    const response = await request.post("/forgot-password").send({
+      user: {
+        email: "johndoe@gmail.com",
+      },
+    });
+
+    expect(response.status).toEqual(422);
+    expect(response.body.error).toEqual("User is not verified");
+
+    done();
+  });
+
+  it("should send email if user exists", async (done) => {
+    const user = new Users({
+      firstName: "John",
+      lastName: "Doe",
+      email: "johndoe@gmail.com",
+      password: "Thisisastrongpassword1",
+      isVerified: true,
+    });
+    await user.save();
+    const response = await request.post("/forgot-password").send({
+      user: {
+        email: "johndoe@gmail.com",
+      },
+    });
+
+    expect(response.status).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(sendResetPassword).toHaveBeenCalledTimes(1);
+    expect(sendResetPassword.mock.calls[0][0].email).toEqual(
+      "johndoe@gmail.com"
+    );
+    expect(sendResetPassword.mock.calls[0][0].firstName).toEqual("John");
+    expect(sendResetPassword.mock.calls[0][0].token).toBeTruthy();
+
+    done();
+  });
+
+  it("should not send email if user doesn't exist", async (done) => {
+    const response = await request.post("/forgot-password").send({
+      user: {
+        email: "unknown@gmail.com",
+      },
+    });
+
+    expect(response.status).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(sendResetPassword).not.toHaveBeenCalled();
+
     done();
   });
 });

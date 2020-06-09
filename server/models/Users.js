@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const sendEmail = require("../mailer");
+const { sendMail, sendResetPassword } = require("../mailer");
 
 const { Schema } = mongoose;
 
@@ -65,10 +65,18 @@ UsersSchema.methods.generateRefreshToken = function () {
 };
 
 UsersSchema.methods.sendEmail = function (verificationToken) {
-  sendEmail({
+  sendMail({
     firstName: this.firstName,
     email: this.email,
     token: verificationToken,
+  });
+};
+
+UsersSchema.methods.sendResetPassword = function (resetPasswordToken) {
+  sendResetPassword({
+    firstName: this.firstName,
+    email: this.email,
+    token: resetPasswordToken,
   });
 };
 
